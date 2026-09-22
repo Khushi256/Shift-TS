@@ -1,0 +1,29 @@
+.predict-page__header {
+  margin-bottom: var(--space-8);
+}
+
+.predict-page__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-2);
+}
+
+.predict-page__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-prose);
+  max-width: 560px;
+  margin: 0;
+}
+
+.predict-page__error {
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-critical-subtle);
+  border: 1px solid var(--color-critical);
+  border-left-width: 2px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-critical);
+}

@@ -1,0 +1,109 @@
+/* ============================================================
+   SHIFT-TS Design Token System
+   All CSS custom properties. No raw hex anywhere else.
+   ============================================================ */
+
+:root {
+  /* ── Ground ─────────────────────────────────────────────── */
+  --color-bg-base:        #0a0d13;
+  --color-bg-elevated:    #111622;
+  --color-bg-recessed:    #070a10;
+  --color-border:         #1e2535;
+  --color-border-subtle:  #161d2c;
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --color-text-primary:   #e8edf5;
+  --color-text-secondary: #8b98b4;
+  --color-text-muted:     #556070;
+  --color-text-inverse:   #0a0d13;
+
+  /* ── Signal (primary action + data) ─────────────────────── */
+  --color-signal:         #4c9eff;
+  --color-signal-subtle:  rgba(76, 158, 255, 0.12);
+  --color-signal-hover:   #3a8de8;
+
+  /* ── Semantic States ─────────────────────────────────────── */
+  --color-healthy:        #3fb980;
+  --color-healthy-subtle: rgba(63, 185, 128, 0.08);
+  --color-warning:        #e9a23b;
+  --color-warning-subtle: rgba(233, 162, 59, 0.08);
+  --color-critical:       #e05252;
+  --color-critical-subtle:rgba(224, 82, 82, 0.08);
+  --color-info:           #6b88c4;
+
+  /* ── Data / Chart ────────────────────────────────────────── */
+  --color-data-primary:   #4c9eff;
+  --color-data-true:      #8b98b4;
+  --color-data-band:      rgba(76, 158, 255, 0.13);
+  --color-data-baseline:  rgba(139, 152, 180, 0.5);
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --font-ui:   'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs:   0.72rem;
+  --text-sm:   0.825rem;
+  --text-base: 0.9375rem;
+  --text-md:   1.125rem;
+  --text-lg:   1.35rem;
+  --text-xl:   1.625rem;
+
+  --text-data-primary:   3rem;
+  --text-data-secondary: 1.5rem;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.06em;
+
+  --line-height-ui:    1.4;
+  --line-height-prose: 1.65;
+
+  /* ── Spacing (4px base) ──────────────────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+
+  /* ── Shape ───────────────────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-pill: 100px;
+
+  /* ── Elevation ───────────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.6);
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  --sidebar-width:       240px;
+  --sidebar-width-rail:  64px;
+  --content-max-width:   960px;
+  --content-padding:     var(--space-8);
+
+  /* ── Motion ──────────────────────────────────────────────── */
+  --duration-fast:   120ms;
+  --duration-base:   200ms;
+  --duration-slow:   350ms;
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

@@ -1,0 +1,46 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Main content area */
+.shell__main {
+  flex: 1;
+  overflow-y: auto;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--duration-slow) var(--ease-out);
+}
+
+.shell__main--rail {
+  margin-left: var(--sidebar-width-rail);
+}
+
+.shell__content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--content-padding);
+}
+
+/* Mobile overlay */
+.shell__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+/* Mobile: hide margin, top bar takes over */
+@media (max-width: 768px) {
+  .shell__main,
+  .shell__main--rail {
+    margin-left: 0;
+    padding-top: 56px; /* top bar height */
+  }
+
+  .shell__content {
+    padding: var(--space-6) var(--space-4);
+  }
+}
