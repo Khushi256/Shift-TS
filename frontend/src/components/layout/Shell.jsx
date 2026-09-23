@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import './Shell.css';
 
-export default function Shell({ children, modelStatus = 'dev' }) {
+export default function Shell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
@@ -33,7 +33,6 @@ export default function Shell({ children, modelStatus = 'dev' }) {
         collapsed={collapsed}
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
-        modelStatus={modelStatus}
       />
 
       {/* Mobile overlay */}

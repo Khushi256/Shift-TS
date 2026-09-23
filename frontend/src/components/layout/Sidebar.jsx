@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom';
 import { Activity, Home, Gauge, BarChart2, Shield, Info, X } from 'lucide-react';
-import StatusDot from '../shared/StatusDot';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -15,7 +14,6 @@ export default function Sidebar({
   collapsed,
   mobileOpen,
   onMobileClose,
-  modelStatus = 'dev',
 }) {
   // Mobile drawer mode must never display as a collapsed rail; it should always show full labels and brand
   const isRail = collapsed && !mobileOpen;
@@ -83,13 +81,6 @@ export default function Sidebar({
           </li>
         ))}
       </ul>
-
-      {/* Footer: model status */}
-      {!isRail && (
-        <div className="sidebar__footer">
-          <StatusDot status={modelStatus} />
-        </div>
-      )}
     </nav>
   );
 }
