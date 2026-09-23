@@ -131,24 +131,6 @@ python experiments/run_uncertainty.py
 python experiments/run_robustness.py
 ```
 
----
-
-## Deployment (Vercel)
-
-The web dashboard is fully configured for deployment on **Vercel** with zero backend infrastructure required:
-
-1. Import your GitHub repository to [Vercel](https://vercel.com).
-2. Configure project settings:
-   * **Root Directory:** `frontend`
-   * **Framework Preset:** `Vite`
-   * **Build Command:** `npm run build`
-   * **Output Directory:** `dist`
-3. Click **Deploy**.
-
-*(Single-page routing rewrites are pre-configured in [`frontend/vercel.json`](file:///c:/Users/khush/OneDrive/Desktop/Shift-TS/frontend/vercel.json) to support direct navigation to `/predict`, `/performance`, `/robustness`, and `/about`).*
-
----
-
 ## Project Structure
 
 ```text
