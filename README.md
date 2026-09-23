@@ -25,9 +25,13 @@ FD002 contains multivariate turbofan engine sensor time-series under multiple op
 
 **Task:** Predict the Remaining Useful Life of an engine from historical sensor sequences.
 
-**Run Locally**
+**Run Frontend Locally**
 
-* python -m streamlit run app/streamlit_app.py
+```bash
+cd frontend
+npm run dev
+```
+> Runs at `http://localhost:5173`
 
 ## Approach
 
@@ -110,22 +114,24 @@ Evaluate the model under:
 | Data                | NumPy, Pandas       |
 | Visualization       | Matplotlib, Seaborn |
 | Experiment Tracking | TensorBoard         |
-| Demo                | Streamlit           |
+| Web Application     | React (Vite)        |
 
 ## Project Structure
 
 ```text
 SHIFT-TS/
+├── CMAPSSData/
 ├── data/
+├── experiments/
+├── frontend/
+├── models/
 ├── notebooks/
 ├── src/
 │   ├── data/
+│   ├── evaluation/
 │   ├── models/
-│   ├── training/
-│   └── evaluation/
-├── experiments/
-├── models/
-├── app/
+│   └── training/
+├── tests/
 ├── requirements.txt
 └── README.md
 ```
