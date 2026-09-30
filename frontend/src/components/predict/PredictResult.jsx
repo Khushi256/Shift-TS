@@ -38,8 +38,8 @@ export default function PredictResult({ data, onReset }) {
             {Math.round(rul)}
             <span className="predict-result__rul-unit">cycles</span>
           </div>
-          <div className="predict-result__interval" aria-label={`95% interval: ${Math.round(lower)} to ${Math.round(upper)} cycles`}>
-            95% interval&nbsp;
+          <div className="predict-result__interval" aria-label={`Nominal 95% predictive interval: ${Math.round(lower)} to ${Math.round(upper)} cycles`}>
+            Nominal 95% predictive interval&nbsp;
             <span className="predict-result__interval-range">
               [{Math.round(lower)} – {Math.round(upper)}]
             </span>
@@ -57,7 +57,7 @@ export default function PredictResult({ data, onReset }) {
       <RULChart cycles={cycles} means={means} stds={stds} ruls={ruls} />
 
       {/* Technical drawer */}
-      <TechnicalDrawer rul={rul} std={std} lower={lower} upper={upper} mcPasses={mcPasses} />
+      <TechnicalDrawer rul={rul} std={std} lower={lower} upper={upper} />
     </section>
   );
 }

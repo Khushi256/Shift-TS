@@ -10,6 +10,7 @@ import {
   Radio,
   Database,
 } from 'lucide-react';
+import { MC_PASSES, summaryMetrics } from '../api/inference';
 import './Landing.css';
 
 const PIPELINE_STAGES = [
@@ -17,28 +18,28 @@ const PIPELINE_STAGES = [
     step: '01',
     title: 'Multivariate Ingestion',
     tech: '21 Sensors · 3 Flight Settings',
-    summary: 'Processes 30-cycle sliding telemetry windows normalized across 6 distinct NASA C-MAPSS operating regimes.',
+    summary: 'Ingests 30-cycle sliding telemetry windows across 21 sensors and 3 flight settings, normalized across 6 NASA C-MAPSS operating regimes.',
     icon: Database,
   },
   {
     step: '02',
     title: 'Self-Supervised Encoding',
-    tech: 'InfoNCE + Masked Recovery',
-    summary: 'Pre-trains recurrent representations on unlabelled degradation trends to build robust fleet-invariant features.',
+    tech: 'InfoNCE · Recurrent Encoder',
+    summary: 'Pre-trains recurrent representations on unlabelled degradation trends via contrastive loss to capture robust fleet-invariant dynamics.',
     icon: Cpu,
   },
   {
     step: '03',
     title: 'Few-Shot Adaptation',
-    tech: 'ProtoNet · 1% Target Labels',
-    summary: 'Fine-tunes the latent boundary for novel operating environments using minimal labelled flight trajectories.',
+    tech: 'Engine-Level · Multi-Regime',
+    summary: 'Adapts model weights to target fleets using 1–20% whole-engine trajectories; full fine-tuning improves MAE over held-out split baselines.',
     icon: Layers,
   },
   {
     step: '04',
-    title: 'Calibrated Inference',
-    tech: '2-Layer GRU · MC Dropout',
-    summary: 'Generates point RUL estimates accompanied by 95% credible intervals (±1.96σ) across T=20 stochastic forward passes.',
+    title: 'Uncertainty-Aware Inference',
+    tech: `2-Layer GRU · MC Dropout (T=${MC_PASSES})`,
+    summary: `Generates RUL estimates with nominal 95% predictive intervals via T=${MC_PASSES} MC Dropout passes, providing an uncertainty-aware health proxy.`,
     icon: Radio,
   },
 ];
@@ -49,7 +50,7 @@ const MODULES = [
     icon: Gauge,
     tag: 'Operational Workstation',
     title: 'RUL Prediction & Telemetry',
-    desc: 'Select engines across test and validation cohorts or upload raw CSV telemetry to evaluate remaining cycles alongside credible intervals.',
+    desc: 'Select engines across test and validation cohorts or upload raw CSV telemetry to evaluate remaining cycles alongside nominal predictive intervals.',
     action: 'Open Predictor',
   },
   {
@@ -57,7 +58,7 @@ const MODULES = [
     icon: BarChart2,
     tag: 'Validation Suite',
     title: 'Model Benchmarks & Coverage',
-    desc: 'Examine zero-shot target RMSE, error-uncertainty correlation (ρ ≈ 0.224), and selective prediction risk-coverage trade-offs.',
+    desc: `Examine zero-shot target RMSE (${summaryMetrics.targetRmse}), error-uncertainty correlation (ρ ≈ ${summaryMetrics.spearmanRho}), and few-shot ablation.`,
     action: 'View Performance',
   },
   {
@@ -73,10 +74,12 @@ const MODULES = [
 const SPECS = [
   { label: 'Architecture', value: '2-Layer GRU (64 hidden units), MC Dropout (p=0.2)' },
   { label: 'Input Specification', value: '30-cycle sliding window, 24 features (21 sensors + 3 operational settings)' },
-  { label: 'Uncertainty Estimation', value: 'Monte Carlo Dropout with T=20 stochastic inference passes (95% CI)' },
+  { label: 'Uncertainty Estimation', value: `Monte Carlo Dropout, T=${MC_PASSES} stochastic inference passes · nominal 95% predictive interval (±1.96σ)` },
   { label: 'Target Fleet Benchmark', value: 'NASA C-MAPSS FD002 (6 operating regimes, 260 train / 259 test engines)' },
-  { label: 'Zero-Shot Target RMSE', value: '20.35 cycles on unseen target cohort under distribution shift' },
-  { label: 'Calibration Fidelity', value: 'Spearman rank correlation ρ ≈ 0.224 between predictive variance and true error' },
+  { label: 'Zero-Shot Target RMSE', value: `${summaryMetrics.targetRmse} cycles on unseen target engines under multi-condition operations` },
+  { label: 'Zero-Shot Target MAE', value: `${summaryMetrics.targetMae.toFixed(2)} cycles on unseen target engines (no label adaptation)` },
+  { label: 'Nominal 95% Interval Coverage', value: `${summaryMetrics.targetCoverage95}% empirical coverage on held-out engines (nominal 95% interval)` },
+  { label: 'Error–Uncertainty Correlation', value: `Spearman ρ ≈ ${summaryMetrics.spearmanRho} between predictive variance and absolute prediction error (positive association)` },
 ];
 
 export default function Landing() {
@@ -95,7 +98,7 @@ export default function Landing() {
 
         <p className="landing-hero__subtitle">
           A deep learning prognostics framework for aircraft engine Remaining Useful Life (RUL) estimation,
-          coupling self-supervised representation learning with calibrated epistemic uncertainty bounds.
+          coupling self-supervised representation learning with MC Dropout epistemic uncertainty estimation.
         </p>
 
         <div className="landing-hero__actions">
@@ -119,7 +122,7 @@ export default function Landing() {
           <span className="landing-section__kicker">End-to-End Architecture</span>
           <h2 className="landing-section__heading">Prognostics Pipeline</h2>
           <p className="landing-section__subheading">
-            From raw multivariate sensor telemetry to calibrated decision support.
+            From raw multivariate sensor telemetry to uncertainty-aware decision support.
           </p>
         </div>
 

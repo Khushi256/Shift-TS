@@ -3,27 +3,27 @@ import './PerturbationExplainer.css';
 const PERTURBATIONS = [
   {
     key:     'gaussian_noise',
-    label:   'Gaussian Noise',
-    analogy: 'Random sensor jitter — like electrical interference on a measurement cable.',
+    label:   'Gaussian Noise (σ = 0.05)',
+    analogy: 'Random sensor jitter with standard deviation σ = 0.05 relative to normalized feature range.',
     impact:  'Tests whether the model can ignore low-level noise without losing predictive accuracy.',
   },
   {
     key:     'sensor_dropout',
-    label:   'Sensor Dropout',
-    analogy: 'A sensor goes offline and returns zeros — simulating a physical sensor failure.',
+    label:   'Sensor Dropout (1 channel zeroed)',
+    analogy: 'A random sensor channel goes offline and returns zeros — simulating a physical telemetry failure.',
     impact:  'Tests whether the model degrades gracefully when input channels disappear.',
   },
   {
     key:     'systematic_drift',
-    label:   'Systematic Drift',
-    analogy: 'A sensor reads consistently high or low — like a calibration error that accumulates over time.',
+    label:   'Systematic Drift (10% ramp)',
+    analogy: 'A sensor linearly drifts upward by +0.10 across the window — simulating calibration loss over time.',
     impact:  'Tests whether the model is robust to biased sensors, common in ageing hardware.',
   },
   {
     key:     'extreme_ops',
-    label:   'Extreme Operating State',
-    analogy: 'Operating conditions fall outside the range seen during training.',
-    impact:  'Simulates a genuine distribution shift — the core challenge SHIFT-TS is designed to handle.',
+    label:   'Extreme Operating State (Regime: 1.0)',
+    analogy: 'Flight operating conditions forced to upper boundary extremes (1.0 in normalized space).',
+    impact:  'Simulates an extreme operating-state shift beyond the observed normalized range.',
   },
 ];
 

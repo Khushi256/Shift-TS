@@ -3457,118 +3457,86 @@
     }
   },
   "riskCoverage": [
-    {
-      "coverage": 4.0,
-      "mae": 2.79
-    },
-    {
-      "coverage": 9.1,
-      "mae": 4.17
-    },
-    {
-      "coverage": 14.2,
-      "mae": 5.08
-    },
-    {
-      "coverage": 19.2,
-      "mae": 6.29
-    },
-    {
-      "coverage": 24.2,
-      "mae": 7.76
-    },
-    {
-      "coverage": 29.3,
-      "mae": 9.12
-    },
-    {
-      "coverage": 34.3,
-      "mae": 10.82
-    },
-    {
-      "coverage": 39.4,
-      "mae": 12.69
-    },
-    {
-      "coverage": 44.4,
-      "mae": 14.26
-    },
-    {
-      "coverage": 49.5,
-      "mae": 15.38
-    },
-    {
-      "coverage": 54.5,
-      "mae": 16.05
-    },
-    {
-      "coverage": 59.6,
-      "mae": 16.46
-    },
-    {
-      "coverage": 64.6,
-      "mae": 16.74
-    },
-    {
-      "coverage": 69.7,
-      "mae": 16.93
-    },
-    {
-      "coverage": 74.7,
-      "mae": 16.93
-    },
-    {
-      "coverage": 79.8,
-      "mae": 16.8
-    },
-    {
-      "coverage": 84.8,
-      "mae": 16.65
-    },
-    {
-      "coverage": 89.9,
-      "mae": 16.38
-    },
-    {
-      "coverage": 94.9,
-      "mae": 16.15
-    },
-    {
-      "coverage": 100.0,
-      "mae": 15.87
-    }
+    { "coverage": 5.0, "mae": 7.33 },
+    { "coverage": 10.0, "mae": 9.10 },
+    { "coverage": 15.0, "mae": 10.07 },
+    { "coverage": 20.0, "mae": 11.09 },
+    { "coverage": 25.0, "mae": 12.42 },
+    { "coverage": 30.0, "mae": 14.06 },
+    { "coverage": 35.0, "mae": 15.54 },
+    { "coverage": 40.0, "mae": 16.75 },
+    { "coverage": 45.0, "mae": 17.79 },
+    { "coverage": 50.0, "mae": 18.43 },
+    { "coverage": 55.0, "mae": 19.01 },
+    { "coverage": 60.0, "mae": 19.31 },
+    { "coverage": 65.0, "mae": 19.54 },
+    { "coverage": 70.0, "mae": 19.70 },
+    { "coverage": 75.0, "mae": 19.68 },
+    { "coverage": 80.0, "mae": 19.61 },
+    { "coverage": 85.0, "mae": 19.41 },
+    { "coverage": 90.0, "mae": 19.27 },
+    { "coverage": 95.0, "mae": 19.04 },
+    { "coverage": 100.0, "mae": 18.78 }
   ],
   "robustness": {
     "clean": {
-      "mae": 15.82,
-      "rmse": 20.4
+      "mae": 18.92,
+      "rmse": 24.17
     },
     "gaussian_noise": {
-      "mae": 20.64,
-      "rmse": 27.77
+      "mae": 29.16,
+      "rmse": 38.58
     },
     "sensor_dropout": {
-      "mae": 48.31,
-      "rmse": 63.54
+      "mae": 44.65,
+      "rmse": 59.85
     },
     "systematic_drift": {
-      "mae": 31.77,
-      "rmse": 42.83
+      "mae": 34.75,
+      "rmse": 43.21
     },
     "extreme_ops": {
-      "mae": 37.49,
-      "rmse": 51.2
+      "mae": 44.16,
+      "rmse": 58.96
     }
   },
   "summaryMetrics": {
-    "targetRmse": 20.35,
-    "targetMae": 15.8,
-    "valRmse": 17.38,
-    "valMae": 13.3,
-    "spearmanRho": 0.184,
+    "targetRmse": 23.91,
+    "targetMae": 18.77,
+    "valRmse": 19.61,
+    "valMae": 15.18,
+    "spearmanRho": 0.135,
     "sslLossStart": 5.17,
     "sslLossEnd": 4.42,
-    "targetCoverage95": 68.6,
-    "valCoverage95": 76.3
+    "targetCoverage95": 55.2,
+    "valCoverage95": 66.2
+  },
+  "fewShotExperiment": {
+    "fullTargetZeroShotMae": 18.77,
+    "fullTargetZeroShotRmse": 23.91,
+    "fractions": [
+      {
+        "fraction": "1%",
+        "splitZeroShotMae": 18.86,
+        "mae": 17.91,
+        "delta": "-0.95",
+        "detail": "1% target data (1 engine adapted / 38 held-out engines, fully fine-tuned)"
+      },
+      {
+        "fraction": "5%",
+        "splitZeroShotMae": 18.77,
+        "mae": 19.15,
+        "delta": "+0.38",
+        "detail": "5% target data (2 engines adapted / 37 held-out engines, partially unfrozen)"
+      },
+      {
+        "fraction": "20%",
+        "splitZeroShotMae": 18.56,
+        "mae": 17.71,
+        "delta": "-0.86",
+        "detail": "20% target data (8 engines adapted / 31 held-out engines, fully fine-tuned)"
+      }
+    ],
+    "explanation": "18.77 MAE is the Full-Target Zero-Shot benchmark across all 39 engines (6,939 windows) with no target parameter updates. In few-shot experiments, each fraction adapts on selected whole engine trajectories and is evaluated against its own split's held-out zero-shot baseline (18.86 for 1%, 18.77 for 5%, 18.56 for 20%). Diagnostic investigation resolved why adaptation previously collapsed to ~80 MAE: the adapter was initializing a fresh random head with ReLU predicting ~0 cycles against target mean RUL ~80.8. When warm-started and grouped strictly by engine, fully fine-tuning the GRU encoder yields adaptation gains on held-out engines (17.91 MAE at 1%, 17.71 MAE at 20%)."
   }
 }

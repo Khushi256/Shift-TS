@@ -2,6 +2,9 @@ import realModelData from './model_real_data.json';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Single source of truth for the MC Dropout pass count used at inference
+export const MC_PASSES = 20;
+
 export async function fetchEngineList(split = 'target') {
   // Returns the actual engine cohorts with lifecycle inspection metadata
   const meta = realModelData.engineMetadata;
@@ -29,7 +32,7 @@ export async function runPrediction({ split, engineId, file }) {
       ruls: precomputed.ruls,
       sourceLabel: file ? `Uploaded: ${file.name}` : `Engine #${engineId} (${split})${cycleInfo}`,
       timestamp: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      mcPasses: 20,
+      mcPasses: MC_PASSES,
     };
   }
 
@@ -52,7 +55,7 @@ export async function runPrediction({ split, engineId, file }) {
     ruls,
     sourceLabel: file ? `Uploaded: ${file.name}` : `Engine #${engineId} (${split})`,
     timestamp: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    mcPasses: 20,
+    mcPasses: MC_PASSES,
   };
 }
 
@@ -64,17 +67,24 @@ export async function runRobustness({ split, engineId }) {
   };
 }
 
+// Ground truth summary metrics and experimental ablation results
+export const summaryMetrics = realModelData.summaryMetrics;
+export const fewShotExperiment = realModelData.fewShotExperiment;
+
 export async function fetchPerformanceMetrics() {
   await new Promise(r => setTimeout(r, 400));
   const s = realModelData.summaryMetrics;
   return {
-    rmse: s.targetRmse,
-    mae:  s.targetMae,
-    nll:  3.47,
-    ece:  0.082,
-    rho:  s.spearmanRho,
-    sslLossStart: s.sslLossStart,
-    sslLossEnd:   s.sslLossEnd,
-    riskCoverage: realModelData.riskCoverage,
+    rmse:              s.targetRmse,        // 23.91 — zero-shot target RMSE
+    mae:               s.targetMae,         // 18.77 — zero-shot target MAE
+    rho:               s.spearmanRho,       // 0.135 — Spearman ρ (error vs uncertainty)
+    coverage95:        s.targetCoverage95,  // 55.2% — nominal 95% PI empirical coverage
+    sslLossStart:      s.sslLossStart,
+    sslLossEnd:        s.sslLossEnd,
+    riskCoverage:      realModelData.riskCoverage,
+    fewShotExperiment: realModelData.fewShotExperiment,
+    mcPasses:          MC_PASSES,
   };
 }
+
+

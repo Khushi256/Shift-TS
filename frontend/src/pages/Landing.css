@@ -201,6 +201,7 @@
   font-size: 0.72rem;
   color: var(--color-info);
   margin-bottom: var(--space-3);
+  display: block;
 }
 
 .landing-pipeline__summary {
@@ -208,6 +209,7 @@
   color: var(--color-text-secondary);
   line-height: 1.55;
   margin: 0;
+  flex: 1;
 }
 
 /* ── Modules Grid ─────────────────────────────────────────── */

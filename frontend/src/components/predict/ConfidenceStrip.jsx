@@ -1,3 +1,4 @@
+import { MC_PASSES } from '../../api/inference';
 import './ConfidenceStrip.css';
 
 /**
@@ -6,7 +7,7 @@ import './ConfidenceStrip.css';
  * A wide fill = LOW confidence (spread interval).
  * Inverted from a typical progress bar.
  */
-export default function ConfidenceStrip({ std, mcPasses = 20 }) {
+export default function ConfidenceStrip({ std, mcPasses = MC_PASSES }) {
   // Map std → confidence score 0–1
   // std < 5 → very high confidence, std > 20 → low confidence
   const maxStd = 22;
@@ -18,8 +19,8 @@ export default function ConfidenceStrip({ std, mcPasses = 20 }) {
     confidence > 0.44 ? { label: 'Moderate', color: 'warning' } :
                         { label: 'Low', color: 'critical' };
 
-  const tooltip = `Based on ${mcPasses} prediction passes. σ = ${std.toFixed(2)} cycles. ${
-    tier.label === 'High'     ? 'Tight spread — prediction is reliable.' :
+  const tooltip = `MC Dropout: ${mcPasses} stochastic passes. σ = ${std.toFixed(2)} cycles. Nominal 95% predictive interval (μ ± 1.96σ) — not a calibrated coverage guarantee. ${
+    tier.label === 'High'     ? 'Tight spread — prediction is relatively reliable.' :
     tier.label === 'Moderate' ? 'Moderate spread — treat with some caution.' :
                                  'Wide spread — model is uncertain; interpret carefully.'
   }`;
@@ -44,7 +45,7 @@ export default function ConfidenceStrip({ std, mcPasses = 20 }) {
         {tier.label === 'High'
           ? `The model ran ${mcPasses} passes and found consistent results. This is a reliable estimate.`
           : tier.label === 'Moderate'
-          ? `The model ran ${mcPasses} passes with moderate variation. Consider the 95% interval when planning.`
+          ? `The model ran ${mcPasses} passes with moderate variation. Consider the predictive interval when planning.`
           : `The model ran ${mcPasses} passes with high variation. The prediction interval is wide — this engine may be in an unusual operating state.`}
       </p>
     </div>

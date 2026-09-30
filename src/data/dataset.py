@@ -112,16 +112,20 @@ class CMAPSSDataset(Dataset):
 
 class FewShotDataset(Dataset):
     """
-    Wraps a CMAPSSDataset and exposes only a random fraction of its windows.
+    Wraps a CMAPSSDataset and exposes only a fraction of target data for adaptation.
 
-    Use this for the 1% / 5% / 20% few-shot adaptation experiments.
-    The sampled indices are fixed by ``seed`` for reproducibility.
+    Supports two selection strategies:
+    - "by_engine" (default, recommended): Selects whole engines based on label_fraction.
+      Prevents adjacent sliding windows of the same engine from leaking between
+      adaptation and evaluation.
+    - "random_windows": Randomly samples sliding window indices across the dataset.
 
     Parameters
     ----------
-    base_dataset   : a CMAPSSDataset instance (target engines)
-    label_fraction : fraction of windows to expose (e.g. 0.01, 0.05, 0.20)
-    seed           : random seed for reproducibility
+    base_dataset       : a CMAPSSDataset instance (target engines)
+    label_fraction     : fraction of data to expose (e.g. 0.01, 0.05, 0.20)
+    seed               : random seed for reproducibility
+    selection_strategy : "by_engine" | "random_windows"
     """
 
     def __init__(
@@ -129,26 +133,55 @@ class FewShotDataset(Dataset):
         base_dataset: CMAPSSDataset,
         label_fraction: float = 0.05,
         seed: int = 42,
+        selection_strategy: str = "by_engine",
     ) -> None:
         if not (0.0 < label_fraction <= 1.0):
             raise ValueError(f"label_fraction must be in (0, 1], got {label_fraction}")
 
         rng = np.random.default_rng(seed)
-        n_total  = len(base_dataset)
-        n_sample = max(1, int(n_total * label_fraction))
-
-        self._indices = rng.choice(n_total, size=n_sample, replace=False)
-        self._base    = base_dataset
-
+        n_total = len(base_dataset)
+        self._base = base_dataset
         self.label_fraction = label_fraction
-        self.n_labeled      = n_sample
-        self.n_total        = n_total
+        self.selection_strategy = selection_strategy
+        self.seed = seed
+
+        if selection_strategy == "by_engine":
+            all_engines = list(base_dataset.engine_ids)
+            n_engines = len(all_engines)
+            n_sample_engines = max(1, int(round(n_engines * label_fraction)))
+            self.selected_engines = set(rng.choice(all_engines, size=n_sample_engines, replace=False))
+            self.held_out_engines = set(all_engines) - self.selected_engines
+
+            self._indices = [
+                i for i, (eid, _) in enumerate(base_dataset._index)
+                if eid in self.selected_engines
+            ]
+            self._held_out_indices = [
+                i for i, (eid, _) in enumerate(base_dataset._index)
+                if eid in self.held_out_engines
+            ]
+        elif selection_strategy == "random_windows":
+            n_sample = max(1, int(n_total * label_fraction))
+            self._indices = list(rng.choice(n_total, size=n_sample, replace=False))
+            all_set = set(range(n_total))
+            self._held_out_indices = list(all_set - set(self._indices))
+            self.selected_engines = set(base_dataset._index[i][0] for i in self._indices)
+            self.held_out_engines = set(base_dataset.engine_ids) - self.selected_engines
+        else:
+            raise ValueError(f"Unknown selection_strategy '{selection_strategy}'. Use 'by_engine' or 'random_windows'.")
+
+        self.n_labeled = len(self._indices)
+        self.n_total = n_total
 
     def __len__(self) -> int:
         return len(self._indices)
 
     def __getitem__(self, idx: int):
         return self._base[int(self._indices[idx])]
+
+    def get_held_out_indices(self) -> list[int]:
+        """Returns window indices for target engines not used in few-shot adaptation."""
+        return self._held_out_indices
 
 
 # ---------------------------------------------------------------------------

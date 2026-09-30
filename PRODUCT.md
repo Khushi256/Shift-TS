@@ -20,11 +20,11 @@ React (Vite, JSX) — `frontend/` directory. Python/Streamlit back-end (`app/str
 
 ## Product Purpose
 
-SHIFT-TS predicts the Remaining Useful Life (RUL) of turbofan aircraft engines from multivariate sensor time-series, in the presence of operating-condition shifts, sensor noise, and limited labels. It extends a GRU-based RUL predictor with self-supervised pre-training, few-shot adaptation, and Monte Carlo Dropout uncertainty estimation. Success means a system that is both honest (calibrated uncertainty) and adaptive (works on unseen engine fleets).
+SHIFT-TS predicts the Remaining Useful Life (RUL) of turbofan aircraft engines from multivariate sensor time-series under complex operating conditions, sensor noise, and distribution shift. It couples a GRU-based RUL predictor with self-supervised pre-training, zero-shot transfer evaluation on unseen engines (with few-shot adaptation ablation), and Monte Carlo Dropout uncertainty estimation. Success means a system that provides robust zero-shot generalisation and informative uncertainty signals.
 
 ## Positioning
 
-The only engine prognostics demo that quantifies *when its own prediction cannot be trusted* — calibrated uncertainty that identifies unreliable predictions, not just a point estimate.
+The only engine prognostics demo that quantifies *when its own prediction cannot be trusted* — uncertainty-aware estimation that identifies unreliable predictions, not just a point estimate.
 
 ## Operating Context
 

@@ -22,20 +22,19 @@ export default function RiskCoverageChart({ data, baselineMae }) {
   return (
     <div className="rc-chart">
       <div className="rc-chart__header">
-        <h3 className="rc-chart__title">Uncertainty actually works.</h3>
+        <h3 className="rc-chart__title">Risk-Coverage Trade-Off</h3>
         <p className="rc-chart__subtitle">
-          When the model keeps only its most confident predictions (left side of the chart),
-          error drops sharply — proving the uncertainty score is informative, not decorative.
-          At 20% coverage, MAE falls below 2 cycles; the unfiltered baseline is{' '}
-          {baselineMae?.toFixed(1)} cycles.
+          Selective prediction trade-off: <strong>lower uncertainty → lower error at lower coverage</strong>.
+          Filtering out predictions with higher uncertainty reduces observed MAE from the full-target baseline ({baselineMae?.toFixed(1)} cycles)
+          down to 11.09 cycles at 20% coverage and 7.33 cycles at 5% coverage.
         </p>
       </div>
 
       <div className="rc-chart__container">
         <ResponsiveContainer width="100%" height={220}>
           <ComposedChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-            <title>Risk-Coverage Curve — selective prediction performance by uncertainty threshold</title>
-            <desc>Line chart showing that retaining only high-confidence predictions dramatically reduces error. The x-axis is the fraction of predictions retained; the y-axis is mean absolute error on retained predictions.</desc>
+            <title>Risk-Coverage Curve — lower uncertainty leads to lower error at lower coverage</title>
+            <desc>Line chart illustrating the selective prediction trade-off: lower uncertainty corresponds to lower error as coverage decreases. The x-axis is prediction coverage retained; the y-axis is mean absolute error.</desc>
 
             <CartesianGrid strokeDasharray="4 4" stroke="var(--color-border-subtle)" vertical={false} />
 

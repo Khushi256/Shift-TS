@@ -73,7 +73,7 @@ def main():
 
     # Evaluate on BOTH val and target
     for split_name, df in [("val", out["df_val"]), ("target", out["df_target"])]:
-        print(f"\n{'─'*50}")
+        print(f"\n{'-'*50}")
         print(f"  Split: {split_name}")
 
         df_s    = apply_scaler(df, scaler)
@@ -105,10 +105,10 @@ def main():
         print(f"  MAE              : {metrics['mae']:.3f}")
         print(f"  RMSE             : {metrics['rmse']:.3f}")
         print(f"  95% PI Coverage  : {metrics['coverage_95pct']:.3f}  "
-              f"(ideal ≈ 0.950)")
+              f"(ideal ~ 0.950)")
         print(f"  Mean PI Width    : {metrics['mean_interval_width']:.3f}")
-        print(f"  Spearman ρ       : {metrics['spearman_rho']:.3f}  "
-              f"(p={metrics['spearman_p']:.4f})")
+        print(f"  Spearman rho     : {metrics['spearman_rho']:.3f}  "
+              f"(p={metrics['spearman_p']:.4e})")
         print(f"  NLL (Gaussian)   : {metrics['nll_gaussian']:.3f}  "
               f"[informational only]")
 
@@ -122,7 +122,7 @@ def main():
             mae_at_coverage=rc["mae_at_coverage"],
             thresholds=rc["thresholds"],
         )
-        print(f"  Results saved → {out_path}")
+        print(f"  Results saved -> {out_path}")
 
     print("\n" + "=" * 60)
 

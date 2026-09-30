@@ -2,8 +2,8 @@ import './OperationalVerdict.css';
 
 const VERDICTS = {
   healthy: {
-    label: 'Healthy',
-    action: 'No immediate inspection required. Continue routine flight scheduling.',
+    label: 'Estimated degradation state: Stable',
+    action: 'No immediate anomaly indicated by the model. Continue monitoring.',
     color: 'healthy',
   },
   warning: {

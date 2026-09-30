@@ -1,8 +1,8 @@
 # SHIFT-TS
 
-### Self-Supervised and Uncertainty-Calibrated Adaptation for Time-Series under Limited Labels
+### Self-Supervised Learning and Uncertainty Estimation for RUL under Distribution Shift
 
-> A research-grade ML framework and interactive application for **Remaining Useful Life (RUL) prediction** in aircraft turbofan engines. SHIFT-TS investigates how models can adapt to unseen operational conditions with minimal labeled data and reliably estimate prediction uncertainty under distribution shift.
+> A research-grade ML framework and interactive application for **Remaining Useful Life (RUL) prediction** in aircraft turbofan engines. SHIFT-TS investigates how models learn representations under complex operational conditions, evaluates zero-shot transfer versus few-shot adaptation on unseen engines, and estimates prediction uncertainty under distribution shift.
 
 ---
 
@@ -14,8 +14,8 @@ Standard deep learning models frequently produce **confident but catastrophicall
 
 **SHIFT-TS addresses three core research questions:**
 1. **Self-Supervised Representation:** Can models learn rich degradation dynamics directly from raw, unlabelled multivariate sensor streams?
-2. **Few-Shot Adaptation:** Can an agent adapt to completely unseen operational regimes using only **1% to 5%** of labeled target fleet data?
-3. **Calibrated Epistemic Uncertainty:** Can Monte Carlo Dropout uncertainty quantify when a prediction cannot be trusted, catching high-error predictions before failure?
+2. **Few-Shot Adaptation:** Can an agent adapt to unseen operational regimes using only **1% to 5%** of labeled target fleet data, or does zero-shot transfer perform better?
+3. **Epistemic Uncertainty Estimation:** Can Monte Carlo Dropout uncertainty quantify when a prediction cannot be trusted, flagging high-error predictions before failure?
 
 ---
 
@@ -191,7 +191,7 @@ SHIFT-TS/
 - [x] 2-Layer GRU baseline architecture with MC Dropout
 - [x] Self-supervised pretraining (Masked sensor recovery + InfoNCE contrastive head)
 - [x] Few-shot domain adaptation (1%, 5%, and 20% label regimes)
-- [x] Calibrated epistemic uncertainty bounds ($\pm 1.96\sigma$, 95% CI)
+- [x] Uncertainty-aware epistemic bounds ($\pm 1.96\sigma$, nominal 95% PI)
 - [x] Sensor perturbation test suite (8 synthetic noise & dropout modes)
 - [x] React + Vite research workstation with real-time trajectory visualization
 - [x] Production build verification & Vercel deployment setup

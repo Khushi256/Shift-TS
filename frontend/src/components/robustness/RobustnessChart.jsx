@@ -5,10 +5,10 @@ import {
 
 const LABELS = {
   clean:            'Clean (baseline)',
-  gaussian_noise:   'Gaussian noise',
-  sensor_dropout:   'Sensor dropout',
-  systematic_drift: 'Systematic drift',
-  extreme_ops:      'Extreme ops',
+  gaussian_noise:   'Gaussian noise (σ = 0.05)',
+  sensor_dropout:   'Sensor dropout (1 channel zeroed)',
+  systematic_drift: 'Systematic drift (10% ramp)',
+  extreme_ops:      'Extreme operating state (Regime: 1.0)',
 };
 
 const CustomTooltip = ({ active, payload, label }) => {

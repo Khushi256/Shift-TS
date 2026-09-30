@@ -1,9 +1,9 @@
 import './Table.css';
 
-export function Table({ children, caption, ...props }) {
+export function Table({ children, caption, wrapperClassName = '', className = '', ...props }) {
   return (
-    <div className="table-wrapper" role="region" aria-label={caption} tabIndex={0}>
-      <table className="table" {...props}>
+    <div className={`table-wrapper ${wrapperClassName}`.trim()} role="region" aria-label={caption} tabIndex={0}>
+      <table className={`table ${className}`.trim()} {...props}>
         {caption && <caption className="table__caption sr-only">{caption}</caption>}
         {children}
       </table>

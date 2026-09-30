@@ -57,12 +57,13 @@ class AdaptConfig:
     checkpoint_dir:      str   = "models"
     log_dir:             str   = "runs"
     epochs:              int   = 40
-    lr:                  float = 1e-3
-    weight_decay:        float = 1e-4
+    lr:                  float = 5e-4
+    weight_decay:        float = 1e-3
     batch_size:          int   = 64
     grad_clip:           float = 1.0
-    early_stop_patience: int   = 15
-    warmup_epochs:       int   = 5     # LR warmup to avoid bad early steps
+    early_stop_patience: int   = 10
+    warmup_epochs:       int   = 3     # LR warmup to avoid bad early steps
+    unfreeze_mode:       str   = "frozen_encoder"  # "frozen_encoder" | "partially_unfrozen" | "fully_finetuned"
     device:              str   = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -123,40 +124,61 @@ def load_encoder_from_ssl(
 
 class FewShotAdapter:
     """
-    Adapts a pretrained encoder to the target domain with very few labels.
+    Adapts a pretrained model to the target domain with very few labels.
+
+    Supports 3 adaptation regimes:
+    - "frozen_encoder"     : Only fine-tunes regression head; encoder completely frozen.
+    - "partially_unfrozen" : Fine-tunes top GRU layer (_l1) + regression head.
+    - "fully_finetuned"    : Fine-tunes entire encoder + regression head with AdamW & clipping.
 
     Parameters
     ----------
-    encoder       : pretrained GRUEncoder — will be FROZEN
-    pretrained_head : if provided, initialise the adaptation head from these
-                      weights (warm start) rather than random; this is
-                      appropriate when encoder comes from a supervised checkpoint
-    head_hidden   : hidden dim for the regression head
-    dropout       : dropout rate
-    config        : AdaptConfig
+    encoder         : pretrained GRUEncoder
+    pretrained_head : if provided, initialise adaptation head from these weights (warm start)
+    unfreeze_mode   : "frozen_encoder" | "partially_unfrozen" | "fully_finetuned"
+    head_hidden     : hidden dim for regression head if initialized fresh
+    dropout         : dropout rate
+    config          : AdaptConfig
     """
 
     def __init__(
         self,
         encoder:         GRUEncoder,
         pretrained_head: RegressionHead | None = None,
+        unfreeze_mode:   str | None = None,
         head_hidden:     int   = 32,
         dropout:         float = 0.2,
         config:          AdaptConfig | None = None,
     ) -> None:
+        import copy
         self.config = config or AdaptConfig()
+        if unfreeze_mode is not None:
+            self.config.unfreeze_mode = unfreeze_mode
+        self.unfreeze_mode = self.config.unfreeze_mode
         self.device = torch.device(self.config.device)
 
-        # ── Encoder: freeze completely ─────────────────────────────────────
-        self.encoder = encoder.to(self.device)
-        for p in self.encoder.parameters():
-            p.requires_grad = False
-        self.encoder.eval()
+        # ── Encoder Setup ──────────────────────────────────────────────────
+        self.encoder = copy.deepcopy(encoder).to(self.device)
+
+        if self.unfreeze_mode == "frozen_encoder":
+            for p in self.encoder.parameters():
+                p.requires_grad = False
+            self.encoder.eval()
+        elif self.unfreeze_mode == "partially_unfrozen":
+            for name, param in self.encoder.named_parameters():
+                # Unfreeze top GRU layer weights (e.g. layer 1 in 2-layer GRU)
+                if "_l1" in name or "linear" in name:
+                    param.requires_grad = True
+                else:
+                    param.requires_grad = False
+        elif self.unfreeze_mode == "fully_finetuned":
+            for p in self.encoder.parameters():
+                p.requires_grad = True
+        else:
+            raise ValueError(f"Unknown unfreeze_mode '{self.unfreeze_mode}'.")
 
         # ── Head: warm-start from pretrained weights OR fresh init ─────────
         if pretrained_head is not None:
-            # Deep-copy pretrained weights — we'll fine-tune them
-            import copy
             self.head = copy.deepcopy(pretrained_head).to(self.device)
         else:
             self.head = RegressionHead(
@@ -165,44 +187,50 @@ class FewShotAdapter:
                 dropout    = dropout,
             ).to(self.device)
 
+        for p in self.head.parameters():
+            p.requires_grad = True
+
+        self.trainable_params = [p for p in self.encoder.parameters() if p.requires_grad] + list(self.head.parameters())
+
         self.criterion = nn.MSELoss()
-        self.optimizer = Adam(
-            self.head.parameters(),
+        self.optimizer = torch.optim.AdamW(
+            self.trainable_params,
             lr           = self.config.lr,
             weight_decay = self.config.weight_decay,
         )
         self.scheduler = ReduceLROnPlateau(
-            self.optimizer, mode="min", patience=5, factor=0.5, min_lr=1e-6
+            self.optimizer, mode="min", patience=4, factor=0.5, min_lr=1e-6
         )
 
-        log_path = Path(self.config.log_dir) / self.config.run_name
+        log_path = Path(self.config.log_dir) / f"{self.config.run_name}_{self.unfreeze_mode}"
         self.writer = SummaryWriter(str(log_path))
 
         self.ckpt_dir = Path(self.config.checkpoint_dir)
         self.ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-        self.best_eval_rmse = float("inf")
-        self._no_improve    = 0
+        self.best_loss   = float("inf")
+        self._no_improve = 0
 
     # ------------------------------------------------------------------
-
-    def _encode(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Encode x with the frozen encoder.
-
-        The encoder is explicitly set to eval() here on every call to guard
-        against PyTorch propagating train() from sibling modules.
-        """
-        self.encoder.eval()        # ← explicit guard on every encode call
-        with torch.no_grad():
-            _, last_hidden = self.encoder(x)
-        return last_hidden
 
     def _warmup_lr(self, epoch: int) -> float:
         """Linear warmup over warmup_epochs."""
         if epoch <= self.config.warmup_epochs:
             return self.config.lr * epoch / self.config.warmup_epochs
         return self.config.lr
+
+    def _forward(self, x: torch.Tensor, train: bool) -> torch.Tensor:
+        if self.unfreeze_mode == "frozen_encoder":
+            self.encoder.eval()
+            with torch.no_grad():
+                _, z = self.encoder(x)
+        else:
+            if train:
+                self.encoder.train()
+            else:
+                self.encoder.eval()
+            _, z = self.encoder(x)
+        return self.head(z)
 
     def _run_epoch(
         self,
@@ -212,12 +240,12 @@ class FewShotAdapter:
     ) -> tuple[float, float, float]:
         if train:
             self.head.train()
-            # Apply warmup
             lr = self._warmup_lr(epoch)
             for pg in self.optimizer.param_groups:
                 pg["lr"] = lr
         else:
             self.head.eval()
+            self.encoder.eval()
 
         total_loss, preds_all, targets_all = 0.0, [], []
         ctx = torch.enable_grad() if train else torch.no_grad()
@@ -228,15 +256,14 @@ class FewShotAdapter:
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                z    = self._encode(x)      # frozen; encoder always in eval
-                pred = self.head(z)
+                pred = self._forward(x, train=train)
                 loss = self.criterion(pred, y)
 
                 if train:
                     self.optimizer.zero_grad()
                     loss.backward()
                     nn.utils.clip_grad_norm_(
-                        self.head.parameters(), self.config.grad_clip
+                        self.trainable_params, self.config.grad_clip
                     )
                     self.optimizer.step()
 
@@ -255,36 +282,39 @@ class FewShotAdapter:
         self,
         few_shot_loader: DataLoader,
         eval_loader:     DataLoader,
+        val_loader:      DataLoader | None = None,
     ) -> dict:
         """
-        Fine-tune the head on few-shot labeled data.
+        Fine-tune on few-shot labeled data with early stopping and regularization.
 
         Parameters
         ----------
-        few_shot_loader : small labeled subset of target-engine windows
-        eval_loader     : ALL target-engine windows (evaluation only)
+        few_shot_loader : small labeled subset of target data
+        eval_loader     : held-out evaluation set
+        val_loader      : optional validation set for early stopping (defaults to few_shot_loader
+                          loss to prevent evaluating set leakage)
         """
         history: dict[str, list[float]] = {
             k: [] for k in
             ["train_rmse", "train_mae", "eval_rmse", "eval_mae"]
         }
 
-        best_ckpt = self.ckpt_dir / f"{self.config.run_name}_head_best.pt"
+        best_ckpt = self.ckpt_dir / f"{self.config.run_name}_{self.unfreeze_mode}_best.pt"
 
         for epoch in range(1, self.config.epochs + 1):
             t0 = time.time()
-            _, tr_mae, tr_rmse = self._run_epoch(few_shot_loader, train=True,
-                                                   epoch=epoch)
-            _, ev_mae, ev_rmse = self._run_epoch(eval_loader,     train=False)
+            tr_loss, tr_mae, tr_rmse = self._run_epoch(few_shot_loader, train=True, epoch=epoch)
+            ev_loss, ev_mae, ev_rmse = self._run_epoch(eval_loader,     train=False)
 
-            # Scheduler only kicks in after warmup
+            # Monitor either validation loader or train loss
+            monitor_loss = tr_loss if val_loader is None else self._run_epoch(val_loader, train=False)[0]
+
             if epoch > self.config.warmup_epochs:
-                self.scheduler.step(ev_rmse)
+                self.scheduler.step(monitor_loss)
 
             self.writer.add_scalar("adapt/train_rmse", tr_rmse, epoch)
             self.writer.add_scalar("adapt/eval_rmse",  ev_rmse, epoch)
-            self.writer.add_scalar("adapt/lr",
-                self.optimizer.param_groups[0]["lr"], epoch)
+            self.writer.add_scalar("adapt/lr", self.optimizer.param_groups[0]["lr"], epoch)
 
             history["train_rmse"].append(tr_rmse)
             history["train_mae"].append(tr_mae)
@@ -292,22 +322,19 @@ class FewShotAdapter:
             history["eval_mae"].append(ev_mae)
 
             elapsed = time.time() - t0
-            print(
-                f"  Adapt {epoch:3d}/{self.config.epochs}  |  "
-                f"few-shot RMSE {tr_rmse:.2f}  |  "
-                f"full-eval RMSE {ev_rmse:.2f}  MAE {ev_mae:.2f}  |  "
-                f"lr={self.optimizer.param_groups[0]['lr']:.2e}  |  {elapsed:.1f}s"
-            )
 
-            if ev_rmse < self.best_eval_rmse:
-                self.best_eval_rmse = ev_rmse
-                self._no_improve    = 0
-                torch.save(self.head.state_dict(), best_ckpt)
-                print(f"    → best eval RMSE {ev_rmse:.2f} (head saved)")
+            if monitor_loss < self.best_loss:
+                self.best_loss   = monitor_loss
+                self._no_improve = 0
+                torch.save({
+                    "encoder_state": self.encoder.state_dict(),
+                    "head_state":    self.head.state_dict(),
+                    "unfreeze_mode": self.unfreeze_mode,
+                    "epoch":         epoch,
+                }, best_ckpt)
             else:
                 self._no_improve += 1
                 if self._no_improve >= self.config.early_stop_patience:
-                    print(f"  Early stop at epoch {epoch}.")
                     break
 
         self.writer.close()
@@ -315,17 +342,19 @@ class FewShotAdapter:
 
     @torch.no_grad()
     def predict(self, loader: DataLoader) -> tuple[np.ndarray, np.ndarray]:
+        self.encoder.eval()
         self.head.eval()
         preds, targets = [], []
         for batch in loader:
             x, y, _ = batch
             x = x.to(self.device)
-            z = self._encode(x)
-            pred = self.head(z).cpu()
+            pred = self._forward(x, train=False).cpu()
             preds.append(pred.numpy())
             targets.append(y.numpy())
         return np.concatenate(preds), np.concatenate(targets)
 
-    def load_best_head(self) -> None:
-        path = self.ckpt_dir / f"{self.config.run_name}_head_best.pt"
-        self.head.load_state_dict(torch.load(path, map_location=self.device))
+    def load_best(self) -> None:
+        path = self.ckpt_dir / f"{self.config.run_name}_{self.unfreeze_mode}_best.pt"
+        ckpt = torch.load(path, map_location=self.device)
+        self.encoder.load_state_dict(ckpt["encoder_state"])
+        self.head.load_state_dict(ckpt["head_state"])

@@ -9,8 +9,8 @@ export default function PredictEmpty() {
       <p className="predict-empty__explainer">
         <strong>Remaining Useful Life (RUL)</strong> is the number of operating cycles before an engine
         is expected to reach its failure threshold — the point at which maintenance
-        can no longer be deferred. Every prediction here includes a confidence range
-        that tells you how much to trust the number.
+        can no longer be deferred. Every prediction here includes a nominal predictive interval
+        that indicates the uncertainty of the estimate.
       </p>
       <div className="predict-empty__hint">
         <span className="predict-empty__hint-label">Try</span>

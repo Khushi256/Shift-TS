@@ -48,16 +48,16 @@ class MCDropoutWrapper(nn.Module):
     n_passes : number of stochastic forward passes T
     """
 
-    def __init__(self, model: nn.Module, n_passes: int = 50) -> None:
+    def __init__(self, model: nn.Module, n_passes: int = 20) -> None:
         super().__init__()
         self.model    = model
         self.n_passes = n_passes
 
     def _enable_dropout(self) -> None:
-        """Set only Dropout modules to train mode; leave everything else eval."""
+        """Set Dropout and recurrent Dropout (nn.GRU) to train mode; leave everything else eval."""
         self.model.eval()
         for module in self.model.modules():
-            if isinstance(module, nn.Dropout):
+            if isinstance(module, (nn.Dropout, nn.GRU)):
                 module.train()
 
     @torch.no_grad()

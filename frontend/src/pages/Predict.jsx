@@ -16,7 +16,7 @@ export default function Predict() {
       <div className="predict-page__header">
         <h1 className="predict-page__title">Predict Remaining Useful Life</h1>
         <p className="predict-page__subtitle">
-          Run calibrated RUL prediction with uncertainty estimation on NASA C-MAPSS FD002 engine data.
+          Run RUL prediction with MC Dropout uncertainty estimation on NASA C-MAPSS FD002 engine data.
         </p>
       </div>
 

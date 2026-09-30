@@ -50,14 +50,14 @@ export default function RULChart({ cycles, means, stds, ruls }) {
       <div className="rul-chart__header">
         <h3 className="rul-chart__title">RUL Degradation Trajectory</h3>
         <span className="rul-chart__subtitle">
-          Predicted remaining cycles over the engine's operating history · 95% credible interval
+          Predicted remaining cycles over the engine's operating history · 95% predictive interval
         </span>
       </div>
 
       <div className="rul-chart__container">
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={data} margin={{ top: 12, right: 24, left: 6, bottom: 16 }}>
-            <title>RUL Degradation Trajectory — Predicted remaining useful life with 95% confidence interval</title>
+            <title>RUL Degradation Trajectory — Predicted remaining useful life with 95% predictive interval (MC Dropout, T=20)</title>
             <desc>Line chart showing predicted remaining cycles over operating history. The shaded band shows the 95% prediction interval from Monte Carlo Dropout uncertainty estimation.</desc>
 
             <CartesianGrid

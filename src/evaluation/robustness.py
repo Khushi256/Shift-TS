@@ -170,16 +170,66 @@ def op_cond_shift(
 
 
 # ---------------------------------------------------------------------------
-# Perturbation registry (for experiment loops)
+# Sensor drift (linear calibration drift over temporal window)
+# ---------------------------------------------------------------------------
+
+def sensor_drift(
+    x:            np.ndarray | torch.Tensor,
+    drift_rate:   float = 0.20,
+    n_sensors:    int   = 2,
+    seed:         int   = 0,
+    sensor_range: tuple[int, int] | None = None,
+) -> np.ndarray | torch.Tensor:
+    """
+    Simulates linear temporal calibration drift on selected sensor channels.
+    Ramps from 0 to +drift_rate across the window length W.
+    """
+    is_tensor = isinstance(x, torch.Tensor)
+    arr = x.numpy().copy() if is_tensor else np.array(x)
+
+    N, W, F = arr.shape
+    rng = np.random.default_rng(seed)
+
+    lo, hi = sensor_range if sensor_range else (0, F - 3)
+    drift_cols = rng.choice(hi - lo, size=min(n_sensors, hi - lo), replace=False) + lo
+
+    ramp = np.linspace(0, drift_rate, W, dtype=arr.dtype)[np.newaxis, :, np.newaxis]
+    arr[:, :, drift_cols] = np.clip(arr[:, :, drift_cols] + ramp, 0.0, 1.0)
+
+    return torch.from_numpy(arr) if is_tensor else arr
+
+
+# ---------------------------------------------------------------------------
+# Extreme operating state
+# ---------------------------------------------------------------------------
+
+def extreme_op_state(
+    x:            np.ndarray | torch.Tensor,
+    mode:         str = "max",
+    op_col_start: int = -3,
+) -> np.ndarray | torch.Tensor:
+    """
+    Force operating condition variables to extreme regime boundaries (0.0 or 1.0).
+    """
+    val = 1.0 if mode == "max" else 0.0
+    return op_cond_shift(x, new_values=[val, val, val], op_col_start=op_col_start)
+
+
+# ---------------------------------------------------------------------------
+# Perturbation registry (for evaluation loops)
 # ---------------------------------------------------------------------------
 
 PERTURBATIONS = {
-    "clean":           lambda x, seed: x,
-    "noise_low":       lambda x, seed: gaussian_noise(x, sigma=0.02, seed=seed),
-    "noise_med":       lambda x, seed: gaussian_noise(x, sigma=0.05, seed=seed),
-    "noise_high":      lambda x, seed: gaussian_noise(x, sigma=0.10, seed=seed),
-    "missing_10pct":   lambda x, seed: missing_values(x, mask_ratio=0.10, seed=seed),
-    "missing_30pct":   lambda x, seed: missing_values(x, mask_ratio=0.30, seed=seed),
-    "sensor_drop_1":   lambda x, seed: sensor_dropout(x, n_sensors=1, seed=seed),
-    "sensor_drop_3":   lambda x, seed: sensor_dropout(x, n_sensors=3, seed=seed),
+    "clean":             lambda x, seed: x,
+    "noise_low":         lambda x, seed: gaussian_noise(x, sigma=0.02, seed=seed),
+    "noise_med":         lambda x, seed: gaussian_noise(x, sigma=0.05, seed=seed),
+    "noise_high":        lambda x, seed: gaussian_noise(x, sigma=0.10, seed=seed),
+    "sensor_drop_1":     lambda x, seed: sensor_dropout(x, n_sensors=1, seed=seed),
+    "sensor_drop_3":     lambda x, seed: sensor_dropout(x, n_sensors=3, seed=seed),
+    "sensor_drift_low":  lambda x, seed: sensor_drift(x, drift_rate=0.10, seed=seed),
+    "sensor_drift_high": lambda x, seed: sensor_drift(x, drift_rate=0.25, seed=seed),
+    "extreme_op_max":    lambda x, seed: extreme_op_state(x, mode="max"),
+    "extreme_op_min":    lambda x, seed: extreme_op_state(x, mode="min"),
+    "missing_10pct":     lambda x, seed: missing_values(x, mask_ratio=0.10, seed=seed),
+    "missing_30pct":     lambda x, seed: missing_values(x, mask_ratio=0.30, seed=seed),
 }

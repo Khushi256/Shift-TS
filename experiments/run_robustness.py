@@ -97,7 +97,7 @@ def main():
     device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Evaluate each perturbation
-    print(f"\n  {'Perturbation':25}  {'MAE':>8}  {'RMSE':>8}  {'ΔMAE':>8}")
+    print(f"\n  {'Perturbation':25}  {'MAE':>8}  {'RMSE':>8}  {'Delta_MAE':>9}")
     print(f"  {'-'*55}")
 
     baseline_mae = None
@@ -127,7 +127,7 @@ def main():
         for k, v in results.items()
         for metric in ("mae", "rmse")
     })
-    print(f"\n  Results saved → {out_path}")
+    print(f"\n  Results saved -> {out_path}")
     print("=" * 60)
 
 

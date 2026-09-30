@@ -1,0 +1,55 @@
+/* Few-Shot Domain Adaptation Table */
+.few-shot-table-wrapper {
+  overflow-x: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+}
+
+.few-shot-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.few-shot-table .table__th {
+  padding: var(--space-3) var(--space-3);
+  font-size: 0.68rem;
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-muted);
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.few-shot-table .table__td {
+  padding: var(--space-3) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  vertical-align: middle;
+}
+
+.few-shot-table__primary {
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  display: block;
+  line-height: 1.3;
+}
+
+.few-shot-table__sub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  display: block;
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+@media (max-width: 768px) {
+  .few-shot-table-wrapper {
+    overflow-x: auto;
+  }
+  .few-shot-table {
+    min-width: 600px;
+  }
+}

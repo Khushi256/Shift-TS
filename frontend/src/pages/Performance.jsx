@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import MetricsTable from '../components/performance/MetricsTable';
+import FewShotTable from '../components/performance/FewShotTable';
 import RiskCoverageChart from '../components/performance/RiskCoverageChart';
 import DistributionDiagram from '../components/performance/DistributionDiagram';
 import Disclosure from '../components/shared/Disclosure';
@@ -22,7 +23,7 @@ export default function Performance() {
       <div className="perf-page__header">
         <h1 className="perf-page__title">Performance</h1>
         <p className="perf-page__subtitle">
-          Benchmark results on the target cohort — engines the model never saw during training.
+          Benchmark results on the target cohort — engines evaluated under zero-shot transfer and few-shot adaptation ablation.
         </p>
       </div>
 
@@ -34,7 +35,17 @@ export default function Performance() {
         </SkeletonBlock>
       ) : metrics ? (
         <>
-          <MetricsTable />
+          <MetricsTable
+            rmse={metrics.rmse}
+            mae={metrics.mae}
+            coverage95={metrics.coverage95}
+            rho={metrics.rho}
+          />
+
+          <FewShotTable
+            fewShotData={metrics.fewShotExperiment}
+            zeroShotMae={metrics.mae}
+          />
 
           <RiskCoverageChart
             data={metrics.riskCoverage}
@@ -46,12 +57,11 @@ export default function Performance() {
           <div style={{ marginTop: 'var(--space-12)' }}>
             <Disclosure summary="How uncertainty estimation works — MC Dropout">
               <p style={{ margin: 0 }}>
-                Monte Carlo Dropout performs T=20 stochastic forward passes through the model
-                with dropout active at inference time. The standard deviation across these passes
-                approximates the predictive uncertainty of a deep Gaussian Process posterior —
-                without the computational cost of full Bayesian inference or MCMC sampling.
-                The error–uncertainty Spearman rank correlation (ρ = {metrics.rho}) confirms
-                that higher uncertainty correctly identifies higher-error predictions.
+                Monte Carlo Dropout performs T={metrics.mcPasses ?? 20} stochastic forward passes through the model
+                with dropout active at inference time. The mean across passes is the point estimate;
+                the standard deviation is an uncertainty-aware heuristic proxy — not a calibrated Bayesian
+                posterior. The error–uncertainty Spearman rank correlation (ρ = {metrics.rho}) reflects that
+                lower uncertainty → lower error at lower coverage under selective prediction.
               </p>
             </Disclosure>
           </div>
