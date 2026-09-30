@@ -14,7 +14,7 @@ Standard deep learning models frequently produce **confident but catastrophicall
 
 **SHIFT-TS addresses three core research questions:**
 1. **Self-Supervised Representation:** Can models learn rich degradation dynamics directly from raw, unlabelled multivariate sensor streams?
-2. **Few-Shot Adaptation:** Can an agent adapt to unseen operational regimes using only **1% to 5%** of labeled target fleet data, or does zero-shot transfer perform better?
+2. **Few-Shot Adaptation:** Can an agent adapt to unseen operational regimes using 1%, 5%, or 20% of labeled target fleet data under different encoder fine-tuning regimes, or does zero-shot transfer perform better?
 3. **Epistemic Uncertainty Estimation:** Can Monte Carlo Dropout uncertainty quantify when a prediction cannot be trusted, flagging high-error predictions before failure?
 
 ---
@@ -47,10 +47,10 @@ NASA C-MAPSS FD002 (21 Sensors, 3 Flight Settings, 6 Operating Regimes)
 ## Key Benchmark Results
 
 * **Dataset:** NASA C-MAPSS FD002 (6 operating regimes, 260 training engines, 259 test engines).
-* **Target Fleet RMSE:** `20.35` cycles zero-shot under operational regime shift.
-* **Uncertainty Calibration:** Spearman rank correlation $\rho \approx 0.224$ between predictive variance and true error (high uncertainty reliably signals high error).
-* **Selective Prediction:** Risk–coverage analysis demonstrates that deferring high-uncertainty predictions reduces MAE to under `2.0` cycles.
-* **Label Efficiency:** Few-shot adaptation restores baseline predictive fidelity using as little as 1% labeled target trajectories.
+* **Target Fleet MAE / RMSE:** `18.77` / `23.91` cycles zero-shot under operational regime shift.
+* **Uncertainty:** Spearman ρ = 0.135 between MC Dropout predictive variance and absolute error — positive correlation confirms lower uncertainty tracks lower error under selective prediction.
+* **Selective Prediction:** Risk–coverage curve shows MAE of `7.33` at 5% coverage (highest-confidence predictions) rising to `18.78` at full coverage.
+* **Few-Shot Adaptation:** Ablation across 1%, 5%, and 20% target-engine splits under frozen-encoder, partially unfrozen, and fully fine-tuned regimes. Fully fine-tuned configurations improve MAE to 17.91 (1%) and 17.71 (20%) over held-out split baselines.
 
 ---
 

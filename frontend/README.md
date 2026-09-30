@@ -1,16 +1,43 @@
-# React + Vite
+# SHIFT-TS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interactive research workstation for the SHIFT-TS turbofan engine RUL prediction framework.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 18** + **Vite** (JSX, no TypeScript)
+- **Vanilla CSS** with a custom dark-mode design token system (`src/tokens/`)
+- **Recharts** for time-series and risk-coverage visualisation
+- **Lucide React** for iconography
 
-## React Compiler
+## Pages
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Route | Description |
+|-------|-------------|
+| `/` | Overview — Prognostics pipeline, system workstations, dataset facts |
+| `/predict` | Engine selector, RUL prediction, MC Dropout uncertainty bands |
+| `/performance` | Benchmark metrics, few-shot ablation table, risk-coverage chart |
+| `/robustness` | Sensor perturbation results (noise, dropout, drift, extreme op-state) |
+| `/about` | Architecture dossier, design decisions, dataset provenance |
 
-## Expanding the Oxlint configuration
+## Data Source
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+All displayed metrics are loaded from `src/api/model_real_data.json` — a single source of truth populated from real model runs (`models/uncertainty_target.npz`, `models/robustness_results.npz`). **No numbers are hardcoded in components.**
+
+Key empirical values:
+- Target MAE: **18.77** / RMSE: **23.91** (zero-shot, all 39 target engines)
+- Nominal 95% PI coverage: **55.2%** (MC Dropout, T=20)
+- Spearman ρ: **0.135** (uncertainty vs. absolute error, target set)
+- Few-shot: **17.91 MAE** at 1%, **17.71 MAE** at 20% (fully fine-tuned)
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server (http://localhost:5173)
+npm run dev
+
+# Production build
+npm run build
+```

@@ -51,7 +51,7 @@ No logo, no colour brand constraints confirmed. Visual direction: dark, technica
 ## Evidence on Hand
 
 - Trained checkpoint: `models/baseline_best.pt` (may or may not exist depending on run state)
-- Benchmark numbers shown in UI: RMSE 20.35 cycles (zero-shot target), SSL loss 5.17 to 4.42, rho = 0.224 error-uncertainty correlation
+- Benchmark numbers shown in UI: MAE 18.77 / RMSE 23.91 (zero-shot target), nominal 95% PI coverage 55.2%, Spearman ρ = 0.135 (uncertainty vs. error, target set)
 - Dataset: NASA C-MAPSS FD002 in `CMAPSSData/`
 - No real testimonials, no fabricated benchmarks permitted
 
