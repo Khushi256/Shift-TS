@@ -214,8 +214,11 @@ class TestScalerFinite:
         scaler = fit_scaler(out["df_train"])
         df_s   = apply_scaler(out["df_train"], scaler)
         vals   = df_s[FEATURE_COLS].values
-        assert vals.min() >= -1e-5, f"[{dataset_id}] Scaled train values < 0"
-        assert vals.max() <= 1 + 1e-5, f"[{dataset_id}] Scaled train values > 1"
+        # Single-op sources (FD001/FD003) use fixed global op ranges [0, 42] and [0, 0.84].
+        # Negative sensor noise at sea level (-0.0087 / 42 = -0.0002) is within 1e-3.
+        eps = 1e-3 if DATASET_CONFIG[dataset_id]["n_op_conditions"] == 1 else 1e-5
+        assert vals.min() >= -eps, f"[{dataset_id}] Scaled train values < 0"
+        assert vals.max() <= 1 + eps, f"[{dataset_id}] Scaled train values > 1"
 
 
 # ---------------------------------------------------------------------------
@@ -279,3 +282,52 @@ class TestScalerRangeCheck:
         assert row["frac_out_sensors"] < 0.01, (
             f"FD002 train sensors out of range: {row['frac_out_sensors']:.4f}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 8. Step 3 Scenarios, Fixed Regime Centers & Fixed Op Scaling
+# ---------------------------------------------------------------------------
+
+class TestStep3ScenariosAndRegimes:
+
+    def test_seven_scenarios_exist(self):
+        """All 7 approved scenarios exist and leave-one-regime-out is dropped."""
+        from src.data.constants import SCENARIOS
+        expected_scenarios = [
+            "ID_FD002", "ID_FD004",
+            "FAULT_1", "FAULT_2",
+            "OPCOND_1", "OPCOND_2",
+            "COMBINED",
+        ]
+        for name in expected_scenarios:
+            assert name in SCENARIOS, f"Missing scenario: {name}"
+        assert "leave_one_regime_out" not in SCENARIOS
+        assert len(SCENARIOS) == 7
+
+    def test_scenario_columns_and_fields(self):
+        """Each scenario defines source, target, shift_type, and regime visibility."""
+        from src.data.constants import SCENARIOS
+        for name, cfg in SCENARIOS.items():
+            for key in ["source", "target", "shift_type", "fixed_op_scaling", "regimes_seen", "regimes_unseen"]:
+                assert key in cfg, f"Scenario '{name}' missing '{key}'"
+
+    def test_fixed_regime_centers_shape(self):
+        """Fixed regime centers must have shape (6, 3) and be sorted by altitude."""
+        from src.data.constants import FIXED_REGIME_CENTERS
+        assert FIXED_REGIME_CENTERS.shape == (6, 3)
+        # Check sorted by op1 (altitude) ascending
+        assert np.all(np.diff(FIXED_REGIME_CENTERS[:, 0]) >= 0)
+
+    def test_fixed_op_ranges_values(self):
+        """Fixed op ranges must be op1 0-42, op2 0-0.84, op3 20-100."""
+        from src.data.constants import FIXED_OP_RANGES
+        assert FIXED_OP_RANGES["op1"] == (0.0, 42.0)
+        assert FIXED_OP_RANGES["op2"] == (0.0, 0.84)
+        assert FIXED_OP_RANGES["op3"] == (20.0, 100.0)
+
+    def test_single_op_scaler_uses_fixed_op_ranges(self):
+        """Fitting on single-op source (FD001) flags fixed_op_scaling."""
+        out = build_engine_splits(DATA_DIR, dataset_id="FD001")
+        scaler = fit_scaler(out["df_train"])
+        assert getattr(scaler, "fixed_op_scaling", False) is True
+

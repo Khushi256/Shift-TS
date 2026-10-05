@@ -313,22 +313,27 @@ class TestCMAPSSDataset:
 class TestFewShotDataset:
 
     def test_fraction_1pct(self, pipeline_output):
-        """1% labelling fraction produces the right number of items."""
+        """1% labelling fraction produces the right number of engines and windows."""
         df_target = pipeline_output["df_target"]
         scaler    = fit_scaler(pipeline_output["df_train"])
         df_scaled = apply_scaler(df_target, scaler)
         base      = CMAPSSDataset(df_scaled)
         fs        = FewShotDataset(base, label_fraction=0.01)
-        expected  = max(1, int(len(base) * 0.01))
-        assert len(fs) == expected
+        expected_engines = max(1, int(round(len(base.engine_ids) * 0.01)))
+        assert len(fs.selected_engines) == expected_engines
+        expected_windows = sum(1 for eid, _ in base._index if eid in fs.selected_engines)
+        assert len(fs) == expected_windows
 
     def test_fraction_5pct(self, pipeline_output):
+        """5% labelling fraction produces the right number of engines and windows."""
         df_target = pipeline_output["df_target"]
         scaler    = fit_scaler(pipeline_output["df_train"])
         base      = CMAPSSDataset(apply_scaler(df_target, scaler))
         fs        = FewShotDataset(base, label_fraction=0.05)
-        expected  = max(1, int(len(base) * 0.05))
-        assert len(fs) == expected
+        expected_engines = max(1, int(round(len(base.engine_ids) * 0.05)))
+        assert len(fs.selected_engines) == expected_engines
+        expected_windows = sum(1 for eid, _ in base._index if eid in fs.selected_engines)
+        assert len(fs) == expected_windows
 
     def test_reproducible_sampling(self, pipeline_output):
         """Two FewShotDatasets with the same seed must return identical items."""

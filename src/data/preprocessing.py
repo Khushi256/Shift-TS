@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from .constants import FEATURE_COLS
+from .constants import FEATURE_COLS, FIXED_OP_RANGES, DATASET_CONFIG
 
 # Small epsilon used to guard zero-range sensors
 _EPSILON = 1e-8
@@ -41,51 +41,73 @@ _EPSILON = 1e-8
 def fit_scaler(
     df_train: pd.DataFrame,
     feature_cols: list[str] | None = None,
+    dataset_id: str | None = None,
+    use_fixed_op_ranges: bool | None = None,
 ) -> MinMaxScaler:
     """
     Fit a MinMaxScaler on the training-engine data.
 
-    Zero-range guard: if a column is constant in the training data its range
-    is artificially widened by ±epsilon so that downstream transforms never
-    produce NaN / inf values.
+    Operating-Condition Scaling Rules (Step 3)
+    -------------------------------------------
+    - For sources with n_op == 1 (FD001 / FD003, or when use_fixed_op_ranges=True),
+      the op columns are scaled using fixed global ranges:
+          op1: 0 to 42   (k-ft, NOT 0-42000)
+          op2: 0 to 0.84 (Mach)
+          op3: 20 to 100 (TRA)
+      This prevents scaling narrow single-condition operating noise into [0, 1].
+    - For sources with n_op > 1 (FD002 / FD004), min and max are fit directly
+      from the training engines.
+    - Zero-range guard: if any sensor column is constant in training data, its range
+      is artificially widened by ±epsilon so that downstream transforms never
+      produce NaN / inf values.
 
     Parameters
     ----------
-    df_train     : DataFrame containing only TRAIN engines (raw, un-scaled)
-    feature_cols : columns to scale (default: FEATURE_COLS from constants)
+    df_train            : DataFrame containing only TRAIN engines (raw, un-scaled)
+    feature_cols        : columns to scale (default: FEATURE_COLS from constants)
+    dataset_id          : optional dataset ID ("FD001".."FD004")
+    use_fixed_op_ranges : explicitly force or disable fixed op scaling
 
     Returns
     -------
-    Fitted MinMaxScaler instance.
+    Fitted MinMaxScaler instance with ``fixed_op_scaling`` boolean attribute.
     """
     feature_cols = feature_cols or FEATURE_COLS
-    data = df_train[feature_cols].values.astype(np.float64)
 
-    # Zero-range guard: widen any constant column by ±epsilon
-    col_min = data.min(axis=0)
-    col_max = data.max(axis=0)
-    zero_range = col_max - col_min < _EPSILON
-    if zero_range.any():
-        # Clone to avoid mutating the caller's data
-        data = data.copy()
-        for j in np.where(zero_range)[0]:
-            data[:, j] = col_min[j]                 # ensure min row exists
-            # Append a virtual row with col_min[j] + epsilon so sklearn sees range
-            # Instead: directly set scaler data_min / data_max via a 2-row fit.
-            # We achieve this by stacking a synthetic min/max row pair.
-            pass
-
-        # Build a 2-row array [min_row, max_row] with epsilon applied where needed
-        synthetic_min = col_min.copy()
-        synthetic_max = col_max.copy()
-        synthetic_max[zero_range] = synthetic_min[zero_range] + _EPSILON
-        guard_data = np.vstack([synthetic_min, synthetic_max, data])
+    if use_fixed_op_ranges is not None:
+        apply_fixed_op = use_fixed_op_ranges
+    elif dataset_id is not None:
+        apply_fixed_op = DATASET_CONFIG.get(dataset_id, {}).get("n_op_conditions", 6) == 1
     else:
-        guard_data = data
+        # Auto-detect: if op1 range in training data is near-zero (< 1.0), it is a single-condition source
+        if "op1" in df_train.columns:
+            op1_span = float(df_train["op1"].max() - df_train["op1"].min())
+            apply_fixed_op = op1_span < 1.0
+        else:
+            apply_fixed_op = False
 
+    min_vals = []
+    max_vals = []
+    for col in feature_cols:
+        if apply_fixed_op and col in FIXED_OP_RANGES:
+            c_min, c_max = FIXED_OP_RANGES[col]
+        else:
+            c_min = float(df_train[col].min())
+            c_max = float(df_train[col].max())
+            if c_max - c_min < _EPSILON:
+                c_max = c_min + _EPSILON
+        min_vals.append(c_min)
+        max_vals.append(c_max)
+
+    synthetic_data = np.vstack([
+        np.array(min_vals, dtype=np.float64),
+        np.array(max_vals, dtype=np.float64),
+    ])
     scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(guard_data)
+    scaler.fit(synthetic_data)
+    scaler.fixed_op_scaling = bool(apply_fixed_op)
     return scaler
+
 
 
 def apply_scaler(

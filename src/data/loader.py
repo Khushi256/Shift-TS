@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import pickle
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -52,6 +53,7 @@ from .constants import (
     COLUMNS,
     DATASET_CONFIG,
     FEATURE_COLS,
+    FIXED_REGIME_CENTERS,
     OP_COLS,
     RUL_CAP,
     SPLIT_SEED,
@@ -170,71 +172,70 @@ def compute_rul(df: pd.DataFrame, cap: int = RUL_CAP) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Operating-condition characterisation
+# Operating-condition characterisation (Fixed FD002 Centers)
 # ---------------------------------------------------------------------------
 
-def _sort_kmeans_by_centroid(kmeans: KMeans) -> np.ndarray:
+class FixedRegimeAssigner:
     """
-    Return a permutation that sorts K-Means cluster indices by the first
-    centroid coordinate (op1 ≈ altitude) ascending, making the label mapping
-    deterministic regardless of random init order.
+    Operating regime assigner based on fixed FD002 reference centroids.
+    Avoids refitting K-Means per dataset, ensuring global cross-dataset regime consistency.
     """
-    return np.argsort(kmeans.cluster_centers_[:, 0])
+    def __init__(self, centers: np.ndarray = FIXED_REGIME_CENTERS):
+        self.cluster_centers_ = np.asarray(centers, dtype=np.float64)
+        self.n_clusters = len(self.cluster_centers_)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        X = np.asarray(X, dtype=np.float64)
+        # Euclidean distance to each fixed center: shape (N, n_clusters)
+        dists = np.linalg.norm(X[:, None, :] - self.cluster_centers_[None, :, :], axis=2)
+        return np.argmin(dists, axis=1)
 
 
 def assign_op_conditions(
     df: pd.DataFrame,
-    kmeans: KMeans | None = None,
+    kmeans: Any | None = None,
     label_map: np.ndarray | None = None,
     n_clusters: int = 6,
-) -> tuple[pd.DataFrame, KMeans | None, np.ndarray | None]:
+    dataset_id: str | None = None,
+) -> tuple[pd.DataFrame, Any | None, np.ndarray | None]:
     """
-    Assign each cycle to one of ``n_clusters`` operating conditions via
-    K-Means on the three op-setting columns.
+    Assign each cycle to an operating condition regime.
 
-    Single-condition bypass
-    -----------------------
-    When ``n_clusters == 1`` (FD001/FD003), every row is assigned
-    ``op_condition = 0`` and K-Means is skipped entirely.  The returned
-    ``kmeans`` and ``label_map`` are both ``None`` in this case.
+    Operating Regime Assignment (Step 3)
+    ------------------------------------
+    - FD001 and FD003 (n_clusters == 1) have exactly 1 flight condition (sea-level);
+      they are assigned op_condition = 0, skipping clustering entirely.
+    - All other datasets (FD002, FD004) are assigned regime IDs 0..5 by proximity
+      to the fixed FD002 K-Means reference centers (FIXED_REGIME_CENTERS).
+    - We do NOT refit K-Means per dataset, guaranteeing that regime IDs correspond
+      to the exact same physical flight conditions everywhere.
 
     Parameters
     ----------
-    df        : DataFrame with op1, op2, op3 columns
-    kmeans    : pre-fitted KMeans model (pass when processing test data)
-    label_map : sorting permutation from a previous call (pass with kmeans)
-    n_clusters: number of operating conditions (1 or 6)
+    df         : DataFrame with op1, op2, op3 columns
+    kmeans     : pre-fitted assigner or KMeans model (optional)
+    label_map  : permutation array (optional)
+    n_clusters : number of operating conditions (1 or 6)
+    dataset_id : optional dataset ID ("FD001", "FD002", etc.)
 
     Returns
     -------
-    (df_with_condition, fitted_kmeans_or_None, label_map_or_None)
-    ``op_condition`` column is an integer in [0, n_clusters).
-    For k>1: cluster 0 ≡ lowest op1 centroid, cluster k-1 ≡ highest.
+    (df_with_condition, assigner_or_None, label_map_or_None)
     """
     df = df.copy()
 
     # --- Single-condition shortcut (FD001 / FD003) ---
-    if n_clusters == 1:
+    if n_clusters == 1 or dataset_id in ("FD001", "FD003"):
         df["op_condition"] = 0
         return df, None, None
 
-    # --- Multi-condition path (FD002 / FD004): K-Means k=6 ---
+    # --- Multi-condition path (FD002 / FD004): Fixed FD002 centers ---
+    assigner = kmeans if (kmeans is not None and hasattr(kmeans, "predict")) else FixedRegimeAssigner()
     op_data = df[OP_COLS].values.astype(np.float64)
+    df["op_condition"] = assigner.predict(op_data)
 
-    if kmeans is None:
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        kmeans.fit(op_data)
-        label_map = _sort_kmeans_by_centroid(kmeans)
-
-    raw_labels = kmeans.predict(op_data)
-
-    # Re-index so cluster 0 always corresponds to the lowest-op1 regime
-    inverse_map = np.zeros(n_clusters, dtype=int)
-    for new_idx, old_idx in enumerate(label_map):
-        inverse_map[old_idx] = new_idx
-
-    df["op_condition"] = inverse_map[raw_labels]
-    return df, kmeans, label_map
+    label_map = label_map if label_map is not None else np.arange(assigner.n_clusters)
+    return df, assigner, label_map
 
 
 # ---------------------------------------------------------------------------
@@ -355,7 +356,7 @@ def load_target_engines(
     df  = load_raw(data_dir, split="train", dataset_id=dataset_id)
     df  = compute_rul(df, cap=cap)
     df, _, _ = assign_op_conditions(
-        df, n_clusters=cfg["n_op_conditions"]
+        df, n_clusters=cfg["n_op_conditions"], dataset_id=dataset_id
     )
     return df
 
@@ -462,7 +463,7 @@ def build_engine_splits(
     df = compute_rul(df)
 
     # 3. Assign operating conditions
-    df, kmeans, label_map = assign_op_conditions(df, n_clusters=n_op)
+    df, kmeans, label_map = assign_op_conditions(df, n_clusters=n_op, dataset_id=dataset_id)
 
     # 4. Split engines (random, engine-level)
     splits = split_engines(df, seed=split_seed)

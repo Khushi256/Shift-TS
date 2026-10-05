@@ -31,6 +31,8 @@ The "distribution shift" is therefore an engine-cohort shift, not a
 condition-exclusion shift.  This is documented explicitly in the paper.
 """
 
+import numpy as np
+
 # ---------------------------------------------------------------------------
 # Raw data column layout
 # ---------------------------------------------------------------------------
@@ -133,6 +135,115 @@ VALID_DATASET_IDS = list(DATASET_CONFIG.keys())
 # Operating-condition cluster count for backward-compat (FD002)
 # ---------------------------------------------------------------------------
 N_OP_CONDITIONS = DATASET_CONFIG["FD002"]["n_op_conditions"]   # = 6
+
+# ---------------------------------------------------------------------------
+# Fixed FD002 Operating Regime Centers (sorted by op1 / altitude ascending)
+# ---------------------------------------------------------------------------
+# All datasets use these 6 fixed reference centroids for regime assignment.
+# We do NOT refit K-Means per dataset to ensure cross-dataset regime consistency.
+# FD001 and FD003 map to regime 0 (sea-level).
+FIXED_REGIME_CENTERS = np.array([
+    [0.00150451, 0.00049434, 100.0],  # Regime 0: Sea level / static ground
+    [10.00297127, 0.25049503, 100.0],  # Regime 1: 10k ft, 0.25 Mach, TRA 100
+    [20.00299895, 0.70051519, 100.0],  # Regime 2: 20k ft, 0.70 Mach, TRA 100
+    [25.00303803, 0.62050187, 60.0],   # Regime 3: 25k ft, 0.62 Mach, TRA 60
+    [35.00304897, 0.84050058, 100.0],  # Regime 4: 35k ft, 0.84 Mach, TRA 100
+    [42.00297633, 0.84048518, 100.0],  # Regime 5: 42k ft, 0.84 Mach, TRA 100
+], dtype=np.float64)
+
+# ---------------------------------------------------------------------------
+# Fixed Operating-Condition Scaling Ranges (for sources with n_op == 1)
+# ---------------------------------------------------------------------------
+# When training on single-condition sources (FD001 / FD003), fitting min-max on
+# narrow operating ranges would artificially magnify noise into [0, 1].
+# Instead, we scale op columns using the fixed global operating envelop:
+#   op1 (altitude): 0 to 42 (k-ft, NOT 0-42000)
+#   op2 (Mach)    : 0 to 0.84
+#   op3 (TRA)     : 20 to 100
+FIXED_OP_RANGES: dict[str, tuple[float, float]] = {
+    "op1": (0.0, 42.0),
+    "op2": (0.0, 0.84),
+    "op3": (20.0, 100.0),
+}
+
+# ---------------------------------------------------------------------------
+# Transfer & Domain-Shift Scenarios (Step 3 taxonomy)
+# ---------------------------------------------------------------------------
+# Evaluates in-domain, fault-mode shift, operating-condition shift, and combined shift.
+# Note: Leave-one-regime-out is dropped because >96% of 30-cycle sliding windows
+# in FD002/FD004 cover all 6 regimes, making within-engine regime masking infeasible.
+SCENARIOS: dict[str, dict] = {
+    "ID_FD002": {
+        "source": "FD002",
+        "target": "FD002",
+        "shift_type": "in_domain",
+        "description": "In-domain FD002 (engine cohort shift)",
+        "fixed_op_scaling": False,
+        "op_ranges": "minmax_fit",
+        "regimes_seen": "0, 1, 2, 3, 4, 5",
+        "regimes_unseen": "none",
+    },
+    "ID_FD004": {
+        "source": "FD004",
+        "target": "FD004",
+        "shift_type": "in_domain",
+        "description": "In-domain FD004 (engine cohort shift)",
+        "fixed_op_scaling": False,
+        "op_ranges": "minmax_fit",
+        "regimes_seen": "0, 1, 2, 3, 4, 5",
+        "regimes_unseen": "none",
+    },
+    "FAULT_1": {
+        "source": "FD001",
+        "target": "FD003",
+        "shift_type": "fault_mode",
+        "description": "FD001 -> FD003 (1 fault -> 2 faults, single op condition)",
+        "fixed_op_scaling": True,
+        "op_ranges": FIXED_OP_RANGES,
+        "regimes_seen": "0",
+        "regimes_unseen": "none",
+    },
+    "FAULT_2": {
+        "source": "FD002",
+        "target": "FD004",
+        "shift_type": "fault_mode",
+        "description": "FD002 -> FD004 (1 fault -> 2 faults, 6 op conditions)",
+        "fixed_op_scaling": False,
+        "op_ranges": "minmax_fit",
+        "regimes_seen": "0, 1, 2, 3, 4, 5",
+        "regimes_unseen": "none",
+    },
+    "OPCOND_1": {
+        "source": "FD001",
+        "target": "FD002",
+        "shift_type": "operating_condition",
+        "description": "FD001 -> FD002 (1 condition -> 6 operating conditions)",
+        "fixed_op_scaling": True,
+        "op_ranges": FIXED_OP_RANGES,
+        "regimes_seen": "0",
+        "regimes_unseen": "1, 2, 3, 4, 5",
+    },
+    "OPCOND_2": {
+        "source": "FD003",
+        "target": "FD004",
+        "shift_type": "operating_condition",
+        "description": "FD003 -> FD004 (1 condition -> 6 operating conditions)",
+        "fixed_op_scaling": True,
+        "op_ranges": FIXED_OP_RANGES,
+        "regimes_seen": "0",
+        "regimes_unseen": "1, 2, 3, 4, 5",
+    },
+    "COMBINED": {
+        "source": "FD001",
+        "target": "FD004",
+        "shift_type": "combined",
+        "description": "FD001 -> FD004 (1 cond, 1 fault -> 6 conds, 2 faults)",
+        "fixed_op_scaling": True,
+        "op_ranges": FIXED_OP_RANGES,
+        "regimes_seen": "0",
+        "regimes_unseen": "1, 2, 3, 4, 5",
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Environment role labels (for documentation and logging)
