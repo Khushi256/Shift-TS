@@ -1,24 +1,32 @@
 """
 constants.py
 ============
-All fixed configuration for the SHIFT-TS / C-MAPSS FD002 pipeline.
+All fixed configuration for the SHIFT-TS / C-MAPSS pipeline.
 Change values here — not scattered across modules.
+
+Dataset-agnostic design
+-----------------------
+Feature columns (sensors + op-settings) are GLOBAL across all four FD00x
+datasets.  The same 14 informative sensors and 3 op-setting columns are used
+everywhere.  Per-dataset differences that affect runtime behaviour are encoded
+in DATASET_CONFIG below.
 
 Operating conditions note
 --------------------------
-FD002 has 6 discrete operating conditions (recovered by K-Means on op-settings).
-In FD002, *every engine cycles through all 6 conditions* within its run.
-Therefore, "environment" is not a per-engine property — it describes the
-multi-condition distribution seen during a given experiment split.
+FD002 / FD004 have 6 discrete operating conditions.
+FD001 / FD003 have exactly 1 operating condition (sea-level).
+DATASET_CONFIG encodes n_op_conditions per dataset; when n_op_conditions == 1
+the K-Means clustering step is skipped and op_condition is set to 0 for every row.
 
-We use a **random engine-level split** (stratified to preserve the condition
-mix across splits), and the environment nomenclature refers to the split role:
+We use a **random engine-level split** (70 / 15 / 15) inside each dataset's
+training file, and the environment nomenclature refers to the split role:
 
     Train  (Env A/B)  — ~70% of engines   → SSL + supervised training
     Val    (Env C)    — ~15% of engines    → hyperparameter selection
     Target (Env D)    — ~15% of engines    → few-shot adaptation + evaluation
 
-All 6 operating conditions appear in every split (since each engine sees all 6).
+All operating conditions appear in every split for FD002/FD004 (since each
+engine sees all conditions), and trivially for FD001/FD003 (single condition).
 The "distribution shift" is therefore an engine-cohort shift, not a
 condition-exclusion shift.  This is documented explicitly in the paper.
 """
@@ -26,7 +34,8 @@ condition-exclusion shift.  This is documented explicitly in the paper.
 # ---------------------------------------------------------------------------
 # Raw data column layout
 # ---------------------------------------------------------------------------
-# FD002 has 26 space-delimited columns (the last is always blank/NaN).
+# All FD00x files share the same 26 space-delimited columns (last is always
+# blank/NaN and gets dropped during loading).
 COLUMNS = [
     "engine_id", "cycle",
     "op1", "op2", "op3",
@@ -40,9 +49,10 @@ OP_COLS = ["op1", "op2", "op3"]
 ALL_SENSOR_COLS = [f"s{i}" for i in range(1, 22)]
 
 # ---------------------------------------------------------------------------
-# Informative sensors
+# Informative sensors  (GLOBAL — applied to ALL datasets)
 # ---------------------------------------------------------------------------
 # Sensors with near-zero variance in FD002 are uninformative and dropped.
+# We keep this list fixed across datasets for a single consistent input space.
 # Known constant / near-constant sensors in FD002:
 #   s1, s5, s6, s10, s16, s18, s19
 DROPPED_SENSORS = {"s1", "s5", "s6", "s10", "s16", "s18", "s19"}
@@ -65,21 +75,64 @@ STRIDE      = 1     # stride between windows during training
 # ---------------------------------------------------------------------------
 RUL_CAP = 125   # piecewise-linear cap: engines far from failure are treated
                 # as having RUL = 125 to focus learning on near-failure signal
-
-# ---------------------------------------------------------------------------
-# Operating-condition clustering
-# ---------------------------------------------------------------------------
-N_OP_CONDITIONS = 6   # K-Means k; recovers the 6 known C-MAPSS FD002 regimes
+                # Kept at 125 for ALL datasets (consistent with CMAPSS literature)
 
 # ---------------------------------------------------------------------------
 # Engine-level split fractions
 # ---------------------------------------------------------------------------
-# Splits are done RANDOMLY at the engine level (not by condition, since every
-# engine sees all 6 conditions in FD002).
-TRAIN_FRAC  = 0.70   # ~182 engines
-VAL_FRAC    = 0.15   # ~39 engines
-TARGET_FRAC = 0.15   # ~39 engines
-SPLIT_SEED  = 42     # fixed seed for reproducibility
+# Splits are done RANDOMLY at the engine level.
+TRAIN_FRAC  = 0.70
+VAL_FRAC    = 0.15
+TARGET_FRAC = 0.15
+SPLIT_SEED  = 42     # default seed for FD002 backward-compatibility
+
+# ---------------------------------------------------------------------------
+# Per-dataset configuration
+# ---------------------------------------------------------------------------
+# Only fields that genuinely differ between datasets live here.
+# Feature columns, RUL_CAP, window size, stride, and split fractions are
+# IDENTICAL across all four datasets.
+#
+#   n_op_conditions : number of K-Means clusters for operating conditions.
+#                     Set to 1 for FD001/FD003 (single flight condition).
+#                     When == 1, clustering is skipped; op_condition = 0.
+DATASET_CONFIG: dict[str, dict] = {
+    "FD001": {
+        "train_file":      "train_FD001.txt",
+        "test_file":       "test_FD001.txt",
+        "rul_file":        "RUL_FD001.txt",
+        "n_op_conditions": 1,
+        "description":     "Single operating condition, one fault mode",
+    },
+    "FD002": {
+        "train_file":      "train_FD002.txt",
+        "test_file":       "test_FD002.txt",
+        "rul_file":        "RUL_FD002.txt",
+        "n_op_conditions": 6,
+        "description":     "Six operating conditions, one fault mode",
+    },
+    "FD003": {
+        "train_file":      "train_FD003.txt",
+        "test_file":       "test_FD003.txt",
+        "rul_file":        "RUL_FD003.txt",
+        "n_op_conditions": 1,
+        "description":     "Single operating condition, two fault modes",
+    },
+    "FD004": {
+        "train_file":      "train_FD004.txt",
+        "test_file":       "test_FD004.txt",
+        "rul_file":        "RUL_FD004.txt",
+        "n_op_conditions": 6,
+        "description":     "Six operating conditions, two fault modes",
+    },
+}
+
+VALID_DATASET_IDS = list(DATASET_CONFIG.keys())
+
+# ---------------------------------------------------------------------------
+# Operating-condition cluster count for backward-compat (FD002)
+# ---------------------------------------------------------------------------
+N_OP_CONDITIONS = DATASET_CONFIG["FD002"]["n_op_conditions"]   # = 6
 
 # ---------------------------------------------------------------------------
 # Environment role labels (for documentation and logging)

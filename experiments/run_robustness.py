@@ -40,6 +40,9 @@ from src.evaluation.metrics import mae, rmse
 def parse_args():
     p = argparse.ArgumentParser(description="SHIFT-TS Robustness Experiments")
     p.add_argument("--data",    default="CMAPSSData")
+    p.add_argument("--dataset", default="FD002",
+                   choices=["FD001", "FD002", "FD003", "FD004"],
+                   help="C-MAPSS dataset to use")
     p.add_argument("--model",   required=True)
     p.add_argument("--hidden",  type=int,   default=64)
     p.add_argument("--layers",  type=int,   default=2)
@@ -66,11 +69,11 @@ def main():
     args = parse_args()
 
     print("=" * 60)
-    print("SHIFT-TS — Core 6: Robustness Experiments")
+    print(f"SHIFT-TS — Core 6: Robustness Experiments  [{args.dataset}]")
     print("=" * 60)
 
     # Data
-    out    = build_engine_splits(Path(args.data))
+    out    = build_engine_splits(Path(args.data), dataset_id=args.dataset)
     scaler = fit_scaler(out["df_train"])
     df_s   = apply_scaler(out["df_target"], scaler)
     ds     = CMAPSSDataset(df_s)
@@ -121,7 +124,7 @@ def main():
         print(f"  {name:25}  {m:>8.2f}  {r:>8.2f}  {delta_str:>8}")
 
     # Save
-    out_path = Path("models") / "robustness_results.npz"
+    out_path = Path("models") / f"robustness_{args.dataset}_results.npz"
     np.savez(out_path, **{
         f"{k}_{metric}": v[metric]
         for k, v in results.items()

@@ -49,6 +49,9 @@ from src.evaluation.metrics import compute_all_metrics
 def parse_args():
     p = argparse.ArgumentParser(description="SHIFT-TS Uncertainty Evaluation")
     p.add_argument("--data",    default="CMAPSSData")
+    p.add_argument("--dataset", default="FD002",
+                   choices=["FD001", "FD002", "FD003", "FD004"],
+                   help="C-MAPSS dataset to use")
     p.add_argument("--model",   required=True, help="Path to trained model checkpoint")
     p.add_argument("--hidden",  type=int,   default=64)
     p.add_argument("--layers",  type=int,   default=2)
@@ -63,12 +66,12 @@ def main():
     args = parse_args()
 
     print("=" * 60)
-    print("SHIFT-TS — Core 5: Uncertainty Estimation")
+    print(f"SHIFT-TS — Core 5: Uncertainty Estimation  [{args.dataset}]")
     print(f"  MC Dropout passes: {args.passes}")
     print("=" * 60)
 
     # Data
-    out    = build_engine_splits(Path(args.data))
+    out    = build_engine_splits(Path(args.data), dataset_id=args.dataset)
     scaler = fit_scaler(out["df_train"])
 
     # Evaluate on BOTH val and target
@@ -113,7 +116,7 @@ def main():
               f"[informational only]")
 
         # Save results
-        out_path = Path("models") / f"uncertainty_{split_name}.npz"
+        out_path = Path("models") / f"uncertainty_{args.dataset}_{split_name}.npz"
         rc = metrics["risk_coverage"]
         np.savez(
             out_path,

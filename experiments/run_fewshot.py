@@ -79,6 +79,9 @@ from src.training.trainer import Trainer, TrainerConfig
 def parse_args():
     p = argparse.ArgumentParser(description="SHIFT-TS Few-Shot Adaptation")
     p.add_argument("--data",        default="CMAPSSData")
+    p.add_argument("--dataset",     default="FD002",
+                   choices=["FD001", "FD002", "FD003", "FD004"],
+                   help="C-MAPSS dataset to use")
     p.add_argument("--init",        choices=["baseline", "ssl-then-supervised", "ssl-only"],
                    default="baseline",
                    help="Encoder initialisation strategy")
@@ -161,7 +164,7 @@ def main():
     # Data
     # ------------------------------------------------------------------
     print("\n[1] Loading data...")
-    out     = build_engine_splits(Path(args.data))
+    out     = build_engine_splits(Path(args.data), dataset_id=args.dataset)
     scaler  = fit_scaler(out["df_train"])
 
     df_train_s  = apply_scaler(out["df_train"],  scaler)

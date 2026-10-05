@@ -6,8 +6,14 @@ Verify MC Dropout with T=20, active dropout, and re-compute:
 - Nominal 95% interval coverage
 - Spearman rank correlation (rho)
 - Risk-coverage curve from raw predictions
+
+Usage
+-----
+    python experiments/recalculate_uncertainty.py [--dataset FD002]
+                                                  [--data CMAPSSData]
 """
 
+import argparse
 import sys
 from pathlib import Path
 import numpy as np
@@ -21,8 +27,20 @@ from src.data import build_engine_splits, fit_scaler, apply_scaler, CMAPSSDatase
 from src.models.baseline import GRUBaseline
 from src.models.uncertainty import MCDropoutWrapper
 
+
+def parse_args():
+    p = argparse.ArgumentParser(description="SHIFT-TS Recalculate Uncertainty")
+    p.add_argument("--data",    default="CMAPSSData")
+    p.add_argument("--dataset", default="FD002",
+                   choices=["FD001", "FD002", "FD003", "FD004"],
+                   help="C-MAPSS dataset to use")
+    return p.parse_args()
+
+
+args = parse_args()
+
 print("Loading data...")
-out = build_engine_splits(Path("CMAPSSData"))
+out = build_engine_splits(Path(args.data), dataset_id=args.dataset)
 scaler = fit_scaler(out["df_train"])
 df_target_s = apply_scaler(out["df_target"], scaler)
 ds_target = CMAPSSDataset(df_target_s)
@@ -88,7 +106,7 @@ for cov_pct in np.linspace(5, 100, 20):
     risk_coverage.append({"coverage": round(cov_pct, 1), "mae": round(sub_mae, 2)})
 
 print("\n" + "=" * 60)
-print("RECALCULATED GROUND TRUTH METRICS (Target Cohort, Zero-Shot, T=20)")
+print(f"RECALCULATED GROUND TRUTH METRICS  [{args.dataset}]  (Target Cohort, Zero-Shot, T=20)")
 print("=" * 60)
 print(f"MAE:              {mae:.2f}")
 print(f"RMSE:             {rmse:.2f}")

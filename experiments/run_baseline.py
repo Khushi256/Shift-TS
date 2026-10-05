@@ -8,10 +8,11 @@ Usage
     python experiments/run_baseline.py [--epochs 60] [--hidden 64] [--layers 2]
                                        [--dropout 0.2] [--batch 256] [--lr 1e-3]
                                        [--data CMAPSSData] [--run-name baseline]
+                                       [--dataset FD002]
 
 What this does
 --------------
-1. Loads and preprocesses FD002 (engine-level split)
+1. Loads and preprocesses the chosen C-MAPSS dataset (engine-level split)
 2. Builds train / val PyTorch DataLoaders
 3. Trains GRUBaseline with MSE loss
 4. Evaluates best model on val set and target (unseen) set
@@ -50,6 +51,9 @@ from src.training.trainer import Trainer, TrainerConfig
 def parse_args():
     p = argparse.ArgumentParser(description="SHIFT-TS GRU Baseline")
     p.add_argument("--data",     default="CMAPSSData", help="CMAPSSData folder path")
+    p.add_argument("--dataset",  default="FD002",
+                   choices=["FD001", "FD002", "FD003", "FD004"],
+                   help="C-MAPSS dataset to use")
     p.add_argument("--run-name", default="baseline",   help="Experiment name")
     p.add_argument("--epochs",   type=int,   default=60)
     p.add_argument("--hidden",   type=int,   default=64,   help="GRU hidden size")
@@ -70,20 +74,21 @@ def main():
     data_dir = Path(args.data)
 
     print("=" * 60)
-    print("SHIFT-TS — Core 2: GRU Baseline")
+    print(f"SHIFT-TS — Core 2: GRU Baseline  [{args.dataset}]")
     print("=" * 60)
 
     # ------------------------------------------------------------------
     # 1. Data pipeline
     # ------------------------------------------------------------------
     print("\n[1/4] Loading and splitting data …")
-    splits_out = build_engine_splits(data_dir)
+    splits_out = build_engine_splits(data_dir, dataset_id=args.dataset)
 
     df_train  = splits_out["df_train"]
     df_val    = splits_out["df_val"]
     df_target = splits_out["df_target"]
     summary   = splits_out["summary"]
 
+    print(f"  Dataset       : {args.dataset}")
     print(f"  Train engines : {summary['n_train_engines']}  "
           f"({summary['n_train_rows']:,} rows)")
     print(f"  Val engines   : {summary['n_val_engines']}  "
@@ -91,9 +96,11 @@ def main():
     print(f"  Target engines: {summary['n_target_engines']}  "
           f"({summary['n_target_rows']:,} rows)")
 
-    # Fit scaler on TRAIN ONLY
+    # Fit scaler on TRAIN ONLY — save to per-dataset path
+    scaler_path = Path("data") / f"scaler_{args.dataset}.pkl"
     scaler = fit_scaler(df_train)
-    save_scaler(scaler, "data/scaler.pkl")
+    save_scaler(scaler, scaler_path)
+    print(f"  Scaler saved  : {scaler_path}")
 
     df_train_s  = apply_scaler(df_train,  scaler)
     df_val_s    = apply_scaler(df_val,    scaler)
