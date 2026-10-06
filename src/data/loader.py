@@ -299,6 +299,27 @@ def split_engines(
     }
 
 
+def assert_no_target_engine_leak(
+    train_engines: set[int] | list[int] | Any,
+    target_engines: set[int] | list[int] | Any,
+    stage_name: str = "fitting",
+) -> None:
+    """
+    Ensure strict data isolation between training and target engines.
+
+    Raises AssertionError if any target engine is present in training data
+    during scaler fitting, SSL pretraining, baseline training, or fine-tuning.
+    """
+    train_set = set(train_engines)
+    target_set = set(target_engines)
+    overlap = train_set & target_set
+    if overlap:
+        raise AssertionError(
+            f"DATA LEAK DETECTED at stage '{stage_name}': target engines "
+            f"{sorted(overlap)} overlap with training engines!"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Operating condition mix per split (diagnostic / paper table)
 # ---------------------------------------------------------------------------

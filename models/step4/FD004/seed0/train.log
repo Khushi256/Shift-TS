@@ -1,0 +1,40 @@
+
+========================================================================
+  STARTING PIPELINE: Source=FD004, Seed=0
+========================================================================
+  Device: cpu
+  [1/4] Scaler fit on 174 source_train engines and saved to scaler.pkl
+  Windows: train=38,601, val=7,513, heldout=7,914
+
+  [2/4] Training Baseline GRU (supervised on source_train, early stopping on val RMSE)...
+  ✓ Baseline saved to baseline.pt (Runtime: 4676.52s, Best Val RMSE: 17.082)
+
+  [3/4] Pretraining SSLModel on source_train windows only (mask=0.15, jitter=0.02, α=β=1.0)...
+
+========================================================================
+  STARTING PIPELINE: Source=FD004, Seed=0
+========================================================================
+  Device: cpu
+  [1/4] Loaded existing scaler from scaler.pkl
+  Windows: train=38,601, val=7,513, heldout=7,914
+  ✓ Loaded existing baseline.pt
+
+  [3/4] Pretraining SSLModel on source_train windows only (mask=0.15, jitter=0.02, α=β=1.0, epochs=30)...
+  ✓ SSL pretrained full model saved to ssl_pretrained_full.pt (Runtime: 3019.93s)
+
+  [4/4] Fine-tuning copy of SSL encoder + RegressionHead end-to-end on source_train labels...
+  ✓ SSL fine-tuned model saved to ssl_finetuned.pt (Runtime: 2536.83s, Best Val RMSE: 20.284)
+
+  [Evaluation] Evaluating models on source_val, source_heldout, and matching targets...
+
+  Evaluation Results Summary:
+scenario source target  seed         model          split  n_windows    MAE   RMSE  degenerate
+    none  FD004  FD004     0      baseline            val       7513 12.788 17.082       False
+ID_FD004  FD004  FD004     0      baseline source_heldout       7914 13.281 18.130       False
+    none  FD004  FD004     0 ssl_finetuned            val       7513 15.930 20.284       False
+ID_FD004  FD004  FD004     0 ssl_finetuned source_heldout       7914 16.179 20.457       False
+ID_FD004  FD004  FD004     0      constant source_heldout       7914 36.107 42.133       False
+  ✓ Metrics saved/updated in C:\Users\khush\OneDrive\Desktop\Shift-TS\results\step4_metrics.csv
+========================================================================
+  PIPELINE FINISHED: Source=FD004, Seed=0
+========================================================================

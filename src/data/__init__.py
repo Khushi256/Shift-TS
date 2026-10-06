@@ -9,6 +9,7 @@ from .loader import (
     load_target_engines,
     build_engine_splits,
     scaler_range_check,
+    assert_no_target_engine_leak,
 )
 from .preprocessing import fit_scaler, apply_scaler, save_scaler, load_scaler
 from .dataset import CMAPSSDataset, FewShotDataset, SSLDataset

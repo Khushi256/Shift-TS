@@ -1,0 +1,47 @@
+
+========================================================================
+  STARTING PIPELINE: Source=FD001, Seed=0
+========================================================================
+  Device: cpu
+  [1/4] Scaler fit on 70 source_train engines and saved to scaler.pkl
+  Windows: train=12,800, val=2,389, heldout=2,542
+
+  [2/4] Training Baseline GRU (supervised on source_train, early stopping on val RMSE)...
+  ✓ Baseline saved to baseline.pt (Runtime: 237.02s, Best Val RMSE: 11.094)
+
+  [3/4] Pretraining SSLModel on source_train windows only (mask=0.15, jitter=0.02, α=β=1.0)...
+  ✓ SSL pretrained full model saved to ssl_pretrained_full.pt (Runtime: 1195.25s)
+
+  [4/4] Fine-tuning copy of SSL encoder + RegressionHead end-to-end on source_train labels...
+  ✓ SSL fine-tuned model saved to ssl_finetuned.pt (Runtime: 606.68s, Best Val RMSE: 10.924)
+
+  [Evaluation] Evaluating models on source_val, source_heldout, and matching targets...
+
+========================================================================
+  STARTING PIPELINE: Source=FD001, Seed=0
+========================================================================
+  Device: cpu
+  [1/4] Loaded existing scaler from scaler.pkl
+  Windows: train=12,800, val=2,389, heldout=2,542
+  ✓ Loaded existing baseline.pt
+  ✓ Loaded existing ssl_pretrained_full.pt
+  ✓ Loaded existing ssl_finetuned.pt
+
+  [Evaluation] Evaluating models on source_val, source_heldout, and matching targets...
+
+  Evaluation Results Summary:
+         scenario source target  seed         model          split  n_windows    MAE   RMSE  degenerate
+             none  FD001  FD001     0      baseline            val       2389  8.053 11.094       False
+in_domain_heldout  FD001  FD001     0      baseline source_heldout       2542 10.191 13.982       False
+          FAULT_1  FD001  FD003     0      baseline         target      21820 20.583 37.516       False
+         OPCOND_1  FD001  FD002     0      baseline         target      46219 79.673 89.994        True
+         COMBINED  FD001  FD004     0      baseline         target      54028 87.593 96.943        True
+             none  FD001  FD001     0 ssl_finetuned            val       2389  8.119 10.924       False
+in_domain_heldout  FD001  FD001     0 ssl_finetuned source_heldout       2542 10.042 13.569       False
+          FAULT_1  FD001  FD003     0 ssl_finetuned         target      21820 20.849 37.863       False
+         OPCOND_1  FD001  FD002     0 ssl_finetuned         target      46219 38.096 50.225        True
+         COMBINED  FD001  FD004     0 ssl_finetuned         target      54028 38.821 50.424        True
+  ✓ Metrics saved/updated in C:\Users\khush\OneDrive\Desktop\Shift-TS\results\step4_metrics.csv
+========================================================================
+  PIPELINE FINISHED: Source=FD001, Seed=0
+========================================================================

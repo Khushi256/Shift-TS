@@ -1,0 +1,43 @@
+{
+  "source": "FD002",
+  "seed": 0,
+  "git_commit": "9c020d4ef505b194aa58100f1913059db3c02039",
+  "timestamp": "2026-10-05 20:03:36",
+  "device": "cpu",
+  "runtimes_seconds": {
+    "baseline": 1798.63,
+    "ssl_pretrained": 12261.56,
+    "ssl_finetuned": 3075.07
+  },
+  "hyperparameters": {
+    "window_size": 30,
+    "hidden_dim": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "batch_size": 256,
+    "baseline": {
+      "epochs": 60,
+      "lr": 0.001,
+      "early_stop_patience": 15
+    },
+    "ssl_pretrain": {
+      "epochs": 50,
+      "lr": 0.001,
+      "proj_dim": 64,
+      "alpha": 1.0,
+      "beta": 1.0,
+      "jitter": 0.02,
+      "mask": 0.15
+    },
+    "ssl_finetune": {
+      "epochs": 60,
+      "lr": 0.001,
+      "early_stop_patience": 15
+    }
+  },
+  "engine_counts": {
+    "train": 182,
+    "val": 39,
+    "heldout": 39
+  }
+}

@@ -228,7 +228,7 @@ class Trainer:
                 self.best_val_rmse = va_rmse
                 self._no_improve   = 0
                 self.save(str(self.best_ckpt))
-                print(f"  → New best val RMSE: {va_rmse:.2f}  (saved)")
+                print(f"  -> New best val RMSE: {va_rmse:.2f}  (saved)")
             else:
                 self._no_improve += 1
                 if self._no_improve >= self.config.early_stop_patience:

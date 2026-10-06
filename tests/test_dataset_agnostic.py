@@ -331,3 +331,14 @@ class TestStep3ScenariosAndRegimes:
         scaler = fit_scaler(out["df_train"])
         assert getattr(scaler, "fixed_op_scaling", False) is True
 
+    def test_assert_no_target_engine_leak(self):
+        """assert_no_target_engine_leak raises on overlap and passes when disjoint."""
+        from src.data import assert_no_target_engine_leak
+        # Disjoint: passes
+        assert_no_target_engine_leak([1, 2, 3], [4, 5, 6], stage_name="test_clean")
+        # Overlapping: raises AssertionError
+        import pytest
+        with pytest.raises(AssertionError, match="DATA LEAK DETECTED"):
+            assert_no_target_engine_leak([1, 2, 3], [3, 4, 5], stage_name="test_leak")
+
+

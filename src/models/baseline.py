@@ -50,6 +50,8 @@ class RegressionHead(nn.Module):
             nn.Linear(hidden_dim, 1),
             nn.ReLU(),   # RUL ≥ 0
         )
+        # Initialize output bias to 1.0 to guarantee non-zero gradient flow at init
+        nn.init.constant_(self.net[3].bias, 1.0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
